@@ -224,7 +224,12 @@ export function LoginForm({ reason = null, next = null }: LoginFormProps) {
         </Notice>
       ) : null}
 
-      <form noValidate onSubmit={onSubmit} className="flex flex-col gap-[18px]">
+      <form
+        method="post"
+        noValidate
+        onSubmit={onSubmit}
+        className="flex flex-col gap-[18px]"
+      >
         <Controller
           name="identifier"
           control={form.control}
