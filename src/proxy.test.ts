@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
+import { panelPaths } from "@/lib/routes";
 import { proxy } from "./proxy";
 
 function request(path: string, withCookie = false) {
@@ -47,5 +48,18 @@ describe("proxy", () => {
     expect(
       proxy(request("/forgot-password")).headers.get("location"),
     ).toContain("/login?next=");
+  });
+
+  it.each(panelPaths)("protects the panel page %s", (path) => {
+    expect(proxy(request(path)).headers.get("location")).toBe(
+      `http://localhost:3000/login?next=${encodeURIComponent(path)}`,
+    );
+    expect(proxy(request(path, true)).headers.get("location")).toBeNull();
+  });
+
+  it("protects unknown URLs too (they show the 404 inside the panel)", () => {
+    expect(proxy(request("/no-such-page")).headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fno-such-page",
+    );
   });
 });

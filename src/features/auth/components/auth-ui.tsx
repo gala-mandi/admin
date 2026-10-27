@@ -117,7 +117,7 @@ export function TextLink({ className, ...props }: ComponentProps<typeof Link>) {
   return (
     <Link
       className={cn(
-        "text-primary focus-visible:ring-ring/15 rounded-sm text-[13px] font-semibold hover:underline focus-visible:ring-4 focus-visible:outline-none",
+        "text-link focus-visible:ring-ring/15 rounded-sm text-[13px] font-semibold hover:underline focus-visible:ring-4 focus-visible:outline-none",
         className,
       )}
       {...props}
