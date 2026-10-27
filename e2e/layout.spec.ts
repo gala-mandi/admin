@@ -1,5 +1,6 @@
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import {
+  mockEmptyShopList,
   mockEndpoint,
   session,
   setRefreshCookie,
@@ -34,6 +35,7 @@ const mainMenu = (page: Page) =>
 
 test.describe("admin layout", () => {
   test("login → every menu item → logout", async ({ page, context }) => {
+    await mockEmptyShopList(page);
     await mockEndpoint(page, "POST", "/auth/login", async () => {
       await setRefreshCookie(context);
       return { status: 200, body: session("admin-token") };
