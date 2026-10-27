@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { SectionPlaceholder } from "@/features/panel/components/section-placeholder";
+import { RequirePermission } from "@/features/panel/components/require-permission";
 import { pageTitle, panelText } from "@/features/panel/text";
+import { ShopsList } from "@/features/tenants/components/shops-list";
 
 export const metadata: Metadata = {
   title: pageTitle(panelText.sections.shops.label),
 };
 
-/** Placeholder until the Shops ticket builds this screen. */
 export default function ShopsPage() {
-  return <SectionPlaceholder section="shops" />;
+  return (
+    <RequirePermission permission="shops:manage">
+      <ShopsList />
+    </RequirePermission>
+  );
 }

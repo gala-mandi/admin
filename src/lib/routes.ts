@@ -16,6 +16,14 @@ export const panelRoutes = {
 
 export type PanelSection = keyof typeof panelRoutes;
 
+/** Pages below Shops. `new` is a fixed segment, so it never matches `[id]`. */
+export const shopRoutes = {
+  list: panelRoutes.shops,
+  create: `${panelRoutes.shops}/new`,
+  detail: (id: string) => `${panelRoutes.shops}/${encodeURIComponent(id)}`,
+  edit: (id: string) => `${panelRoutes.shops}/${encodeURIComponent(id)}/edit`,
+} as const;
+
 export const panelPaths: readonly string[] = Object.values(panelRoutes);
 
 export function isPublicPath(pathname: string): boolean {
