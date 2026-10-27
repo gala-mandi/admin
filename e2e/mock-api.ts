@@ -31,12 +31,12 @@ export type Reply = {
 };
 type Handler = (request: Request) => Reply | Promise<Reply>;
 
-function cors(origin: string | null): Record<string, string> {
+export function cors(origin: string | null): Record<string, string> {
   return {
     "access-control-allow-origin": origin ?? "*",
     "access-control-allow-credentials": "true",
     "access-control-allow-headers": "authorization, content-type, accept",
-    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-methods": "GET, POST, PATCH, OPTIONS",
     "access-control-expose-headers": "retry-after, x-ratelimit-remaining",
   };
 }
@@ -96,4 +96,41 @@ export async function setRefreshCookie(context: BrowserContext) {
 export function bearer(request: Request): string | null {
   const header = request.headers()["authorization"];
   return header?.startsWith("Bearer ") ? header.slice(7) : null;
+}
+
+/** A super-admin whose refresh cookie restores the session on page load. */
+export async function signedInAsSuperAdmin(
+  page: Page,
+  context: BrowserContext,
+) {
+  await setRefreshCookie(context);
+  await mockEndpoint(page, "POST", "/auth/refresh", () => ({
+    status: 200,
+    body: session("admin-token"),
+  }));
+  await mockEndpoint(page, "GET", "/auth/me", () => ({
+    status: 200,
+    body: superAdmin,
+  }));
+}
+
+/** `GET /admin/tenants` (any query) answers with an empty list of shops. */
+export async function mockEmptyShopList(page: Page) {
+  await page.route(`${API}/admin/tenants**`, async (route) => {
+    const request = route.request();
+    const headers = cors(await request.headerValue("origin"));
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: [],
+        meta: { page: 1, limit: 20, total: 0 },
+      }),
+    });
+  });
 }
