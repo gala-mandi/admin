@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Nastaliq_Urdu, Plus_Jakarta_Sans } from "next/font/google";
+import { themeScript } from "@/lib/theme";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -32,7 +33,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       dir="ltr"
       className={`${inter.variable} ${jakarta.variable} ${nastaliq.variable} h-full antialiased`}
+      // The theme script sets `class="dark"` before React hydrates.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <Providers>{children}</Providers>
       </body>

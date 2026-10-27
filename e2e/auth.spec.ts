@@ -150,7 +150,8 @@ test.describe("admin auth", () => {
     );
 
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Log out", exact: true }).click();
+    await page.getByRole("button", { name: /^Account menu/ }).click();
+    await page.getByRole("menuitem", { name: "Log out", exact: true }).click();
 
     await expect(page).toHaveURL("/login");
     await expect(

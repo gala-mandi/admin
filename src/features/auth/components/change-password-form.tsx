@@ -99,7 +99,7 @@ export function ChangePasswordForm() {
         <div className="flex items-center gap-3">
           <div
             aria-hidden
-            className="bg-primary/10 text-primary font-heading flex size-12 items-center justify-center rounded-full text-base font-extrabold"
+            className="bg-primary/10 text-link font-heading flex size-12 items-center justify-center rounded-full text-base font-extrabold"
           >
             {initials(user.name)}
           </div>
