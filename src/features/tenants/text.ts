@@ -23,6 +23,8 @@ export const shopsListText = {
   statusAll: "All statuses",
   sortLabel: "Sort by",
   caption: "Shops",
+  /** Excel export: `shops-2026-10-29.xlsx`. */
+  exportFileName: "shops",
   columns: {
     shop: "Shop",
     owner: "Owner",

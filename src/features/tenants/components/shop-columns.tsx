@@ -7,7 +7,7 @@ import {
 } from "@/components/data-table";
 import { formatDate } from "@/lib/format";
 import { shopRoutes } from "@/lib/routes";
-import { shopsListText as t } from "../text";
+import { shopsListText as t, tenantStatusText } from "../text";
 import type { TenantSummary } from "../types";
 import { StatusBadge } from "./status-badge";
 
@@ -17,6 +17,7 @@ const col = dataTableColumnHelper<TenantSummary>();
 export const shopColumns: DataTableColumn<TenantSummary>[] = col.columns([
   col.accessor("name", {
     header: t.columns.shop,
+    meta: { label: t.columns.shop },
     cell: ({ row }) => (
       <div className="flex min-w-0 flex-col">
         <Link
@@ -34,26 +35,36 @@ export const shopColumns: DataTableColumn<TenantSummary>[] = col.columns([
   col.accessor("ownerName", {
     header: t.columns.owner,
     enableSorting: false,
+    meta: { label: t.columns.owner },
   }),
   col.accessor("phone", {
     header: t.columns.phone,
     enableSorting: false,
+    meta: { label: t.columns.phone },
     cell: ({ getValue }) => <span dir="ltr">{getValue()}</span>,
   }),
   col.accessor("status", {
     header: t.columns.status,
     enableSorting: false,
+    meta: {
+      label: t.columns.status,
+      exportValue: (row: TenantSummary) => tenantStatusText[row.status],
+    },
     cell: ({ getValue }) => <StatusBadge status={getValue()} />,
   }),
   col.accessor("userCount", {
     header: t.columns.users,
     enableSorting: false,
-    meta: { align: "end" },
+    meta: { align: "end", label: t.columns.users },
     cell: ({ getValue }) => <span className="tabular-nums">{getValue()}</span>,
   }),
   col.accessor("createdAt", {
     header: t.columns.created,
     sortDescFirst: true,
+    meta: {
+      label: t.columns.created,
+      exportValue: (row: TenantSummary) => formatDate(row.createdAt),
+    },
     cell: ({ getValue }) => (
       <time dateTime={getValue()} className="text-muted-foreground">
         {formatDate(getValue())}

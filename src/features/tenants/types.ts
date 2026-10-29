@@ -1,4 +1,5 @@
 import type { TenantStatus } from "@/features/auth/types";
+import type { ListResponse } from "@/lib/list-query";
 
 /** Shapes of the shop (tenant) admin API (see the tenants contract). */
 export type { TenantStatus };
@@ -58,10 +59,7 @@ export interface TenantListParams {
   sort?: TenantSort;
 }
 
-export interface TenantList {
-  data: TenantSummary[];
-  meta: { page: number; limit: number; total: number };
-}
+export type TenantList = ListResponse<TenantSummary>;
 
 export interface CreateTenantInput {
   name: string;

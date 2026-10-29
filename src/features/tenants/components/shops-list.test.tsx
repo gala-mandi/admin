@@ -181,6 +181,19 @@ describe("ShopsList", { timeout: 15_000 }, () => {
     await waitFor(() => expect(lastUrl(onUrlUpdate)).toBe("?sort=name"));
   });
 
+  it("has column and Excel export buttons, and Clear filters when filtered", async () => {
+    const { onUrlUpdate } = renderList("?status=active&sort=name");
+    await screen.findByText("Al-Madina Traders");
+
+    expect(screen.getByRole("button", { name: "Columns" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Export to Excel" }),
+    ).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => expect(lastUrl(onUrlUpdate)).toBe("?sort=name"));
+  });
+
   it("row click opens the shop", async () => {
     renderList();
     fireEvent.click(await screen.findByText("Haji Aslam"));
