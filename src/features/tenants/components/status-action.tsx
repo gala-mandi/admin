@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { toApiError } from "@/lib/api-error";
+import { cn } from "@/lib/utils";
 import { type TenantStatusAction, useTenantStatusAction } from "../hooks";
 import { shopDetailText } from "../text";
 import type { TenantDetail } from "../types";
@@ -29,7 +30,13 @@ export function statusActionFor(
 }
 
 /** Suspend / Activate button with a confirmation dialog explaining the effect. */
-export function StatusAction({ tenant }: { tenant: TenantDetail }) {
+export function StatusAction({
+  tenant,
+  className,
+}: {
+  tenant: TenantDetail;
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const mutation = useTenantStatusAction(tenant.id);
   const action = statusActionFor(tenant);
@@ -60,7 +67,7 @@ export function StatusAction({ tenant }: { tenant: TenantDetail }) {
         <Button
           size="lg"
           variant={action === "suspend" ? "destructive" : "default"}
-          className="h-10 gap-2 px-4 font-semibold"
+          className={cn("h-10 gap-2 px-4 font-semibold", className)}
         >
           {action === "suspend" ? (
             <Ban aria-hidden />

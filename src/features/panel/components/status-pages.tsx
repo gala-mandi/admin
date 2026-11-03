@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { panelRoutes } from "@/lib/routes";
 import { panelText } from "../text";
 
+/** Whole-page states read better as a centred card than a full-width band. */
+export const fullPageStateClass =
+  "mx-auto mt-4 w-full max-w-2xl py-14 sm:mt-10 sm:py-16";
+
 function BackToDashboard({ label }: { label: string }) {
   return (
     <Button asChild size="lg">
@@ -23,6 +27,7 @@ export function NotFoundState() {
       title={t.title}
       body={t.body}
       headingLevel="h1"
+      className={fullPageStateClass}
       action={<BackToDashboard label={t.back} />}
     />
   );
@@ -38,6 +43,7 @@ export function ForbiddenState() {
       title={t.title}
       body={t.body}
       headingLevel="h1"
+      className={fullPageStateClass}
       action={<BackToDashboard label={t.back} />}
     />
   );
@@ -58,6 +64,7 @@ export function ErrorState({
       icon={CircleAlert}
       title={t.title}
       headingLevel="h1"
+      className={fullPageStateClass}
       body={
         <>
           {t.body}

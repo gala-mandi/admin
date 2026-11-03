@@ -31,7 +31,7 @@ export function EmptyState({
     <section
       role={role}
       className={cn(
-        "bg-card text-card-foreground rounded-card flex flex-col items-center gap-3 border px-6 py-12 text-center",
+        "bg-card text-card-foreground rounded-card shadow-panel flex flex-col items-center gap-3 border px-6 py-12 text-center",
         className,
       )}
     >

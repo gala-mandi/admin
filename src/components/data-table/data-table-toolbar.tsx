@@ -38,6 +38,11 @@ export interface DataTableToolbarProps {
   onClearFilters?: () => void;
   /** End side: `DataTableViewOptions`, `DataTableExport`, … */
   actions?: ReactNode;
+  /**
+   * One compact row for the `DataTable` `toolbar` slot: the search label is
+   * visually hidden (still its accessible name) and controls are centred.
+   */
+  inline?: boolean;
   className?: string;
 }
 
@@ -48,6 +53,7 @@ export function DataTableToolbar({
   isFiltered = false,
   onClearFilters,
   actions,
+  inline = false,
   className,
 }: DataTableToolbarProps) {
   const searchId = useId();
@@ -55,20 +61,37 @@ export function DataTableToolbar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end",
+        "flex flex-col gap-3 lg:flex-row lg:flex-wrap",
+        inline ? "lg:items-center" : "lg:items-end",
         className,
       )}
     >
       <div
         role="search"
-        className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+        className={cn(
+          "flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap",
+          inline ? "sm:items-center" : "sm:items-end",
+        )}
       >
         {search ? (
-          <div className="flex min-w-56 flex-1 flex-col gap-1.5">
-            <label htmlFor={searchId} className="text-[13px] font-semibold">
+          <div
+            className={cn(
+              "flex min-w-56 flex-1 flex-col gap-1.5",
+              inline && "max-w-md",
+            )}
+          >
+            <label
+              htmlFor={searchId}
+              className={cn("text-[13px] font-semibold", inline && "sr-only")}
+            >
               {search.label ?? t.toolbar.search}
             </label>
-            <InputGroup className="rounded-field bg-card h-10">
+            <InputGroup
+              className={cn(
+                "rounded-field h-10",
+                inline ? "bg-background/60 dark:bg-input/30" : "bg-card",
+              )}
+            >
               <InputGroupAddon className="text-muted-foreground ps-3">
                 <Search aria-hidden />
               </InputGroupAddon>
@@ -87,7 +110,10 @@ export function DataTableToolbar({
         {isFiltered && onClearFilters ? (
           <Button
             variant="ghost"
-            className="h-10 gap-1.5 self-start sm:self-end"
+            className={cn(
+              "h-10 gap-1.5 self-start",
+              inline ? "sm:self-center" : "sm:self-end",
+            )}
             onClick={onClearFilters}
           >
             <X aria-hidden />
@@ -96,7 +122,9 @@ export function DataTableToolbar({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex items-center gap-2 lg:ms-auto">{actions}</div>
+        <div className="flex flex-wrap items-center gap-2 lg:ms-auto">
+          {actions}
+        </div>
       ) : null}
     </div>
   );

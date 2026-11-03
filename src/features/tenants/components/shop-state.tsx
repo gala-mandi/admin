@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { CircleAlert } from "lucide-react";
 import {
   ForbiddenState,
+  fullPageStateClass,
   NotFoundState,
 } from "@/features/panel/components/status-pages";
 import { toApiError } from "@/lib/api-error";
@@ -16,13 +17,19 @@ export function ShopPageSkeleton() {
   return (
     <div role="status" aria-busy="true" className="flex flex-col gap-6">
       <span className="sr-only">{t.loading}</span>
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-8 w-64 max-w-full" />
-        <Skeleton className="h-4 w-40" />
+      <div className="flex items-center gap-4">
+        <Skeleton className="hidden size-14 rounded-2xl sm:block" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-8 w-64 max-w-full" />
+          <Skeleton className="h-4 w-40" />
+        </div>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Skeleton className="rounded-card h-72" />
-        <Skeleton className="rounded-card h-72" />
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Skeleton className="rounded-card h-80 xl:col-span-2" />
+        <div className="flex flex-col gap-6">
+          <Skeleton className="rounded-card h-40" />
+          <Skeleton className="rounded-card h-56" />
+        </div>
       </div>
     </div>
   );
@@ -45,6 +52,7 @@ export function ShopLoadError({
       icon={CircleAlert}
       title={t.loadError}
       headingLevel="h1"
+      className={fullPageStateClass}
       action={
         <Button variant="outline" size="lg" onClick={retry}>
           {t.retry}

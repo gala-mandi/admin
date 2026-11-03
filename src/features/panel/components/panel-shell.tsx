@@ -21,7 +21,9 @@ export function PanelShell({ children }: { children: ReactNode }) {
       <AppSidebar role={user?.role ?? null} />
       <SidebarInset className="min-w-0">
         <PanelHeader user={user} />
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        {/* Fluid up to 1680px so wide screens use the space; pages that
+            read better narrow (forms, 404) cap themselves. */}
+        <div className="mx-auto flex w-full max-w-[1680px] flex-1 flex-col gap-6 px-4 pt-6 pb-10 sm:px-6 sm:pt-8 lg:px-8 2xl:px-10">
           {children}
         </div>
       </SidebarInset>
