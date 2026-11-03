@@ -10,7 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionStore } from "@/stores/session";
 import { type DataTableColumn, dataTableColumnHelper } from "./columns";
 import { DataTable } from "./data-table";
-import { DataTableExport, DataTableViewOptions } from "./data-table-toolbar";
+import {
+  DataTableExport,
+  DataTableToolbar,
+  DataTableViewOptions,
+} from "./data-table-toolbar";
 import { exportFileName, exportToExcel } from "./export";
 import {
   columnVisibilityKey,
@@ -283,5 +287,32 @@ describe("Excel export", () => {
     expect(
       screen.getByRole("button", { name: "Export to Excel" }),
     ).toBeDisabled();
+  });
+});
+
+describe("DataTableToolbar inline", () => {
+  it("keeps the search label as the accessible name but hides it visually", () => {
+    const onChange = vi.fn();
+    render(
+      <DataTableToolbar
+        inline
+        search={{ value: "", onChange, label: "Search shops" }}
+      />,
+    );
+
+    const input = screen.getByLabelText("Search shops");
+    expect(screen.getByText("Search shops")).toHaveClass("sr-only");
+    fireEvent.change(input, { target: { value: "okara" } });
+    expect(onChange).toHaveBeenCalledWith("okara");
+  });
+
+  it("shows the label above the input by default", () => {
+    render(
+      <DataTableToolbar
+        search={{ value: "", onChange: vi.fn(), label: "Find" }}
+      />,
+    );
+
+    expect(screen.getByText("Find")).not.toHaveClass("sr-only");
   });
 });

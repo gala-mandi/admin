@@ -73,6 +73,14 @@ const table = (page: Page) => page.getByRole("table", { name: "Shops" });
 const rows = (page: Page) => table(page).locator("tbody tr");
 const asObject = (params: URLSearchParams | undefined) =>
   Object.fromEntries([...(params ?? new URLSearchParams())].sort());
+/** The status cards count with `limit=1`; the table asks for a page. */
+const isCount = (params: URLSearchParams) => params.get("limit") === "1";
+const listRequests = (seen: URLSearchParams[]) =>
+  seen.filter((params) => !isCount(params));
+const statusCard = (page: Page, name: string) =>
+  page
+    .getByRole("group", { name: "Filter shops by status" })
+    .getByRole("button", { name: new RegExp(`^${name}`) });
 
 test.describe("shops list", () => {
   test("search, status, sort and page survive a reload", async ({
@@ -84,13 +92,25 @@ test.describe("shops list", () => {
 
     await page.goto("/shops");
     await expect(rows(page)).toHaveCount(20);
+    // Platform-wide counts on the status cards.
+    await expect(statusCard(page, "All shops")).toContainText("60");
+    await expect(statusCard(page, "Suspended")).toContainText("15");
+    await expect(statusCard(page, "Active")).toContainText("45");
+    await expect(statusCard(page, "Active")).toContainText("75% of all shops");
+    await expect(statusCard(page, "All shops")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     await page.getByLabel("Search shops").fill("okara");
     await expect(page).toHaveURL(/q=okara/);
 
-    await page.getByRole("combobox", { name: "Status" }).click();
-    await page.getByRole("option", { name: "Active" }).click();
+    await statusCard(page, "Active").click();
     await expect(page).toHaveURL(/status=active/);
+    await expect(statusCard(page, "Active")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     await table(page).getByRole("button", { name: /^Shop/ }).click();
     await expect(page).toHaveURL(/sort=name/);
@@ -107,7 +127,7 @@ test.describe("shops list", () => {
       sort: "name",
       status: "active",
     });
-    const before = asObject(requests.at(-1));
+    const before = asObject(listRequests(requests).at(-1));
     expect(before).toEqual({
       limit: "20",
       page: "2",
@@ -120,15 +140,19 @@ test.describe("shops list", () => {
 
     await expect(page).toHaveURL(url.toString());
     await expect(page.getByLabel("Search shops")).toHaveValue("okara");
-    await expect(page.getByRole("combobox", { name: "Status" })).toHaveText(
-      "Active",
+    await expect(statusCard(page, "Active")).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
+    // Counts stay platform-wide whatever the search.
+    await expect(statusCard(page, "All shops")).toContainText("60");
     await expect(
       table(page).getByRole("columnheader", { name: /Shop/ }),
     ).toHaveAttribute("aria-sort", "ascending");
     await expect(page.getByText("Page 2 of 2")).toBeVisible();
     await expect(rows(page).first()).toContainText("Shop 35");
-    expect(asObject(requests.at(-1))).toEqual(before);
+    expect(asObject(listRequests(requests).at(-1))).toEqual(before);
+    expect(requests.filter(isCount).every((p) => !p.has("search"))).toBe(true);
   });
 
   test("typing in search sends one request after typing stops", async ({
@@ -150,7 +174,9 @@ test.describe("shops list", () => {
     // Give a stray late request the chance to show up.
     await page.waitForTimeout(500);
 
-    const typed = requests.slice(loaded);
+    // Only the table asks again; the status counts don't depend on search.
+    const typed = listRequests(requests.slice(loaded));
     expect(typed.map((params) => params.get("search"))).toEqual(["sahiwal"]);
+    expect(requests.filter(isCount).every((p) => !p.has("search"))).toBe(true);
   });
 });
