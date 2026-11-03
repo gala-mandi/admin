@@ -1,8 +1,10 @@
 import {
   keepPreviousData,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
+  type UseQueryResult,
 } from "@tanstack/react-query";
 import { toApiError } from "@/lib/api-error";
 import {
@@ -13,11 +15,14 @@ import {
   suspendTenant,
   updateTenant,
 } from "./api";
-import type {
-  CreateTenantInput,
-  TenantDetail,
-  TenantListParams,
-  UpdateTenantInput,
+import {
+  type CreateTenantInput,
+  type TenantDetail,
+  type TenantList,
+  type TenantListParams,
+  type TenantStatus,
+  tenantStatuses,
+  type UpdateTenantInput,
 } from "./types";
 
 export const tenantKeys = {
@@ -42,6 +47,62 @@ export function useTenants(params: TenantListParams) {
     queryFn: ({ signal }) => listTenants(params, signal),
     placeholderData: keepPreviousData,
     retry: retryUnlessClientError,
+  });
+}
+
+/** `all` (no status filter) or one status. */
+export type TenantCountKey = "all" | TenantStatus;
+
+export interface TenantCount {
+  total: number | undefined;
+  isPending: boolean;
+  isError: boolean;
+}
+
+export const tenantCountKeys = [
+  "all",
+  ...tenantStatuses,
+] as const satisfies readonly TenantCountKey[];
+
+const countParams = (key: TenantCountKey): TenantListParams =>
+  key === "all" ? { page: 1, limit: 1 } : { page: 1, limit: 1, status: key };
+
+const selectTotal = (list: TenantList) => list.meta.total;
+
+function combineCounts(
+  results: UseQueryResult<number>[],
+): Record<TenantCountKey, TenantCount> {
+  return Object.fromEntries(
+    tenantCountKeys.map((key, i) => [
+      key,
+      {
+        total: results[i]?.data,
+        isPending: results[i]?.isPending ?? true,
+        isError: results[i]?.isError ?? false,
+      },
+    ]),
+  ) as Record<TenantCountKey, TenantCount>;
+}
+
+/**
+ * Platform-wide number of shops, in all and per status, for the overview
+ * cards. No extra endpoint: one `GET /admin/tenants?limit=1[&status=]` each,
+ * reading `meta.total`. Ignores the list's search on purpose. The keys sit
+ * under `tenantKeys.lists()`, so creating or suspending a shop refreshes them.
+ */
+export function useTenantCounts(): Record<TenantCountKey, TenantCount> {
+  return useQueries({
+    queries: tenantCountKeys.map((key) => {
+      const params = countParams(key);
+      return {
+        queryKey: tenantKeys.list(params),
+        queryFn: ({ signal }: { signal: AbortSignal }) =>
+          listTenants(params, signal),
+        select: selectTotal,
+        retry: retryUnlessClientError,
+      };
+    }),
+    combine: combineCounts,
   });
 }
 

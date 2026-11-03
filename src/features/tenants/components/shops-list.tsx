@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   DataTable,
   DataTableExport,
-  DataTableStatusFilter,
   DataTableToolbar,
   DataTableViewOptions,
   useColumnVisibility,
@@ -27,24 +26,19 @@ import {
   shopListFilters,
   shopSortFields,
 } from "../search-params";
-import { shopsListText as t, tenantStatusText } from "../text";
-import { type TenantSummary, tenantStatuses } from "../types";
+import { shopsListText as t } from "../text";
+import type { TenantSummary } from "../types";
 import { shopColumns } from "./shop-columns";
-import { statusDotClass } from "./status-badge";
+import { ShopStatusOverview } from "./status-overview";
 
 const section = panelText.sections.shops;
-
-const statusOptions = tenantStatuses.map((status) => ({
-  value: status,
-  label: tenantStatusText[status],
-  dotClassName: statusDotClass[status],
-}));
 
 const getRowId = (row: TenantSummary) => row.id;
 
 /**
  * `/shops`: search, status filter, sort and page live in the URL
- * (`?q=&status=&page=&sort=`), so reload and Back keep them.
+ * (`?q=&status=&page=&sort=`), so reload and Back keep them. The status
+ * cards on top are the status filter.
  */
 export function ShopsList() {
   const router = useRouter();
@@ -59,6 +53,7 @@ export function ShopsList() {
 
   const query = useTenants(toListSearchParams(list.listParams));
   const rows = query.data?.data;
+  const total = query.data?.meta.total;
 
   if (query.isError && toApiError(query.error).status === 403) {
     return <ForbiddenState />;
@@ -79,42 +74,50 @@ export function ShopsList() {
         }
       />
 
-      <DataTableToolbar
-        search={{
-          value: list.search,
-          onChange: list.setSearch,
-          label: t.searchLabel,
-          placeholder: t.searchPlaceholder,
-        }}
-        filters={
-          <DataTableStatusFilter
-            label={t.statusLabel}
-            allLabel={t.statusAll}
-            value={list.filters.status}
-            options={statusOptions}
-            onChange={(status) => list.setFilter("status", status)}
-          />
-        }
-        isFiltered={list.isFiltered}
-        onClearFilters={list.clearAll}
-        actions={
-          <>
-            <DataTableViewOptions
-              columns={shopColumns}
-              columnVisibility={columnVisibility}
-              onColumnVisibilityChange={onColumnVisibilityChange}
-            />
-            <DataTableExport
-              fileName={t.exportFileName}
-              columns={shopColumns}
-              rows={rows}
-              columnVisibility={columnVisibility}
-            />
-          </>
-        }
+      <ShopStatusOverview
+        value={list.filters.status}
+        onChange={(status) => list.setFilter("status", status)}
       />
 
       <DataTable
+        toolbar={
+          <DataTableToolbar
+            inline
+            search={{
+              value: list.search,
+              onChange: list.setSearch,
+              label: t.searchLabel,
+              placeholder: t.searchPlaceholder,
+            }}
+            filters={
+              total === undefined ? null : (
+                <p
+                  data-testid="shops-result-count"
+                  className="text-muted-foreground text-sm whitespace-nowrap tabular-nums"
+                >
+                  {t.resultCount(total)}
+                </p>
+              )
+            }
+            isFiltered={list.isFiltered}
+            onClearFilters={list.clearAll}
+            actions={
+              <>
+                <DataTableViewOptions
+                  columns={shopColumns}
+                  columnVisibility={columnVisibility}
+                  onColumnVisibilityChange={onColumnVisibilityChange}
+                />
+                <DataTableExport
+                  fileName={t.exportFileName}
+                  columns={shopColumns}
+                  rows={rows}
+                  columnVisibility={columnVisibility}
+                />
+              </>
+            }
+          />
+        }
         caption={t.caption}
         columns={shopColumns}
         data={rows}
@@ -137,7 +140,7 @@ export function ShopsList() {
               icon={Search}
               title={t.noMatches.title}
               body={t.noMatches.body}
-              className="rounded-none border-0"
+              className="rounded-none border-0 shadow-none"
               action={
                 <Button variant="outline" onClick={list.clearAll}>
                   {t.noMatches.clear}
@@ -149,7 +152,7 @@ export function ShopsList() {
               icon={Store}
               title={t.empty.title}
               body={t.empty.body}
-              className="rounded-none border-0"
+              className="rounded-none border-0 shadow-none"
               action={
                 <Button asChild>
                   <Link href={shopRoutes.create}>{t.newShop}</Link>

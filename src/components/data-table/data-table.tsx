@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
+  Inbox,
 } from "lucide-react";
 import { type MouseEvent, type ReactNode, useId, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,13 @@ export interface DataTableProps<TData extends RowData> {
   /** Hidden columns (`{ [columnId]: false }`); see `useColumnVisibility`. */
   columnVisibility?: ColumnVisibilityState;
   onColumnVisibilityChange?: (next: ColumnVisibilityState) => void;
+  /**
+   * Bar inside the card, above the table: search, filters, result count,
+   * column menu, export… (usually a `DataTableToolbar` with `inline`).
+   */
+  toolbar?: ReactNode;
+  /** Shown inside the card below the pager (notes, totals…). */
+  footer?: ReactNode;
 }
 
 const emptyRows: never[] = [];
@@ -91,6 +99,9 @@ const emptyObject = {};
 function alignClass(align: "start" | "end" | undefined) {
   return align === "end" ? "text-end" : "text-start";
 }
+
+/** Roomier padding at the start and end of every row. */
+const edgeCell = "px-3 first:ps-4 last:pe-4 sm:first:ps-5 sm:last:pe-5";
 
 function ariaSort(sorted: false | "asc" | "desc") {
   if (sorted === "asc") return "ascending" as const;
@@ -113,10 +124,17 @@ function fromInteractive(event: MouseEvent<HTMLElement>): boolean {
 }
 
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
-  if (sorted === "asc") return <ArrowUp aria-hidden className="size-3.5" />;
-  if (sorted === "desc") return <ArrowDown aria-hidden className="size-3.5" />;
+  if (sorted === "asc") {
+    return <ArrowUp aria-hidden className="text-link size-3.5 shrink-0" />;
+  }
+  if (sorted === "desc") {
+    return <ArrowDown aria-hidden className="text-link size-3.5 shrink-0" />;
+  }
   return (
-    <ChevronsUpDown aria-hidden className="text-muted-foreground size-3.5" />
+    <ChevronsUpDown
+      aria-hidden
+      className="size-3.5 shrink-0 opacity-50 transition-opacity group-hover/sort:opacity-100"
+    />
   );
 }
 
@@ -137,7 +155,8 @@ function HeaderCell<TData extends RowData>({
       scope="col"
       aria-sort={canSort ? ariaSort(sorted) : undefined}
       className={cn(
-        "text-muted-foreground h-11 px-3 text-xs font-semibold tracking-wide uppercase",
+        "text-muted-foreground h-10 text-[11px] font-semibold tracking-[0.06em] uppercase",
+        edgeCell,
         alignClass(meta?.align),
         meta?.className,
       )}
@@ -148,7 +167,7 @@ function HeaderCell<TData extends RowData>({
           onClick={header.column.getToggleSortingHandler()}
           aria-describedby={hintId}
           className={cn(
-            "hover:text-foreground focus-visible:ring-ring/50 -mx-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 uppercase outline-none focus-visible:ring-3",
+            "group/sort hover:text-foreground focus-visible:ring-ring/50 -mx-1.5 inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 tracking-[0.06em] uppercase transition-colors outline-none focus-visible:ring-3",
             sorted && "text-foreground",
             meta?.align === "end" && "flex-row-reverse",
           )}
@@ -230,6 +249,8 @@ export function DataTable<TData extends RowData>({
   bulkActions,
   columnVisibility = emptyObject,
   onColumnVisibilityChange,
+  toolbar,
+  footer,
 }: DataTableProps<TData>) {
   const selectable = Boolean(onRowSelectionChange);
 
@@ -287,7 +308,8 @@ export function DataTable<TData extends RowData>({
     enableRowSelection: selectable,
   });
 
-  const columnCount = Math.max(1, table.getVisibleLeafColumns().length);
+  const visibleColumns = table.getVisibleLeafColumns();
+  const columnCount = Math.max(1, visibleColumns.length);
   const rows = table.getRowModel().rows;
   const pageCount = Math.max(1, table.getPageCount());
   const page = pagination.pageIndex + 1;
@@ -303,12 +325,21 @@ export function DataTable<TData extends RowData>({
     : [];
 
   return (
-    <div className="bg-card text-card-foreground rounded-card overflow-hidden border">
+    <div className="bg-card text-card-foreground rounded-card shadow-panel overflow-hidden border">
+      {toolbar ? (
+        <div
+          data-slot="data-table-toolbar"
+          className="border-b px-4 py-3 sm:px-5"
+        >
+          {toolbar}
+        </div>
+      ) : null}
+
       {selectable && selectedIds.length > 0 ? (
         <div
           role="region"
           aria-label={t.selection.bar}
-          className="bg-secondary/50 flex flex-wrap items-center gap-3 border-b px-4 py-2 text-sm"
+          className="bg-secondary/60 text-secondary-foreground flex flex-wrap items-center gap-3 border-b px-4 py-2 text-sm sm:px-5"
         >
           <span className="font-semibold">
             {t.selection.count(selectedIds.length)}
@@ -338,7 +369,7 @@ export function DataTable<TData extends RowData>({
         className={cn(isFetching && !isLoading && "opacity-60")}
       >
         <TableCaption className="sr-only">{caption}</TableCaption>
-        <TableHeader className="bg-surface-muted/60">
+        <TableHeader className="bg-surface-muted/50">
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id} className="hover:bg-transparent">
               {group.headers.map((header) => (
@@ -359,16 +390,30 @@ export function DataTable<TData extends RowData>({
                 data-testid="data-table-skeleton-row"
                 className="hover:bg-transparent"
               >
-                {Array.from({ length: columnCount }, (_, j) => (
-                  <TableCell key={j} className="px-3 py-3.5">
-                    {i === 0 && j === 0 ? (
-                      <span className="sr-only" role="status">
-                        {t.loading}
-                      </span>
-                    ) : null}
-                    <Skeleton className="h-4 w-full max-w-40" />
-                  </TableCell>
-                ))}
+                {(visibleColumns.length ? visibleColumns : [null]).map(
+                  (column, j) => (
+                    <TableCell
+                      key={column?.id ?? j}
+                      className={cn(
+                        "py-4",
+                        edgeCell,
+                        column?.columnDef.meta?.className,
+                      )}
+                    >
+                      {i === 0 && j === 0 ? (
+                        <span className="sr-only" role="status">
+                          {t.loading}
+                        </span>
+                      ) : null}
+                      <Skeleton
+                        className={cn(
+                          "h-4 w-full max-w-40",
+                          j === 0 && "max-w-56",
+                        )}
+                      />
+                    </TableCell>
+                  ),
+                )}
               </TableRow>
             ))
           ) : isError ? (
@@ -379,16 +424,23 @@ export function DataTable<TData extends RowData>({
               >
                 <div
                   role="alert"
-                  className="flex flex-col items-center gap-3 px-6 py-12 text-center"
+                  className="flex flex-col items-center gap-2 px-6 py-14 text-center"
                 >
-                  <CircleAlert
-                    aria-hidden
-                    className="text-destructive size-6"
-                  />
-                  <p className="font-heading font-bold">{t.errorTitle}</p>
-                  <p className="text-muted-foreground text-sm">{t.errorBody}</p>
+                  <span className="bg-destructive-soft text-destructive mb-1 flex size-12 items-center justify-center rounded-full">
+                    <CircleAlert aria-hidden className="size-5" />
+                  </span>
+                  <p className="font-heading text-base font-bold">
+                    {t.errorTitle}
+                  </p>
+                  <p className="text-muted-foreground max-w-sm text-sm">
+                    {t.errorBody}
+                  </p>
                   {onRetry ? (
-                    <Button variant="outline" onClick={onRetry}>
+                    <Button
+                      variant="outline"
+                      className="mt-2"
+                      onClick={onRetry}
+                    >
                       {t.retry}
                     </Button>
                   ) : null}
@@ -402,9 +454,12 @@ export function DataTable<TData extends RowData>({
                 className="p-0 whitespace-normal"
               >
                 {empty ?? (
-                  <p className="text-muted-foreground px-6 py-12 text-center">
-                    {t.emptyTitle}
-                  </p>
+                  <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
+                    <span className="bg-secondary text-secondary-foreground mb-1 flex size-12 items-center justify-center rounded-full">
+                      <Inbox aria-hidden className="size-5" />
+                    </span>
+                    <p className="text-muted-foreground">{t.emptyTitle}</p>
+                  </div>
                 )}
               </TableCell>
             </TableRow>
@@ -422,7 +477,10 @@ export function DataTable<TData extends RowData>({
                       }
                     : undefined
                 }
-                className={cn(onRowClick && "cursor-pointer")}
+                className={cn(
+                  "border-border/70 hover:bg-muted/40",
+                  onRowClick && "cursor-pointer",
+                )}
               >
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta;
@@ -430,7 +488,8 @@ export function DataTable<TData extends RowData>({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        "px-3 py-3",
+                        "py-3.5",
+                        edgeCell,
                         alignClass(meta?.align),
                         meta?.className,
                       )}
@@ -448,13 +507,13 @@ export function DataTable<TData extends RowData>({
       {showPager ? (
         <nav
           aria-label={t.pagination.label}
-          className="flex flex-col gap-3 border-t px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+          className="bg-surface-muted/30 flex flex-col gap-3 border-t px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-5"
         >
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground tabular-nums">
             {t.pagination.range(from, to, rowCount)}
           </p>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground me-1">
+            <span className="text-muted-foreground me-1 tabular-nums">
               {t.pagination.page(page, pageCount)}
             </span>
             <Button
@@ -477,6 +536,15 @@ export function DataTable<TData extends RowData>({
             </Button>
           </div>
         </nav>
+      ) : null}
+
+      {footer ? (
+        <div
+          data-slot="data-table-footer"
+          className="border-t px-4 py-3 text-sm sm:px-5"
+        >
+          {footer}
+        </div>
       ) : null}
     </div>
   );

@@ -304,6 +304,57 @@ describe("DataTableRowActions", () => {
   });
 });
 
+describe("DataTable slots", () => {
+  it("renders the toolbar and footer inside the table card", () => {
+    renderTable({
+      toolbar: <div role="search">Search here</div>,
+      footer: <p>Totals are from the server</p>,
+    });
+
+    const table = screen.getByRole("table", { name: "Fruits" });
+    const card = table.closest('[data-slot="table-container"]')!.parentElement!;
+    const toolbar = within(card).getByRole("search");
+    expect(toolbar.closest('[data-slot="data-table-toolbar"]')).not.toBeNull();
+    // Above the table, and the footer below the pager.
+    expect(
+      toolbar.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    const footer = within(card).getByText("Totals are from the server");
+    const pager = within(card).getByRole("navigation", { name: "Pages" });
+    expect(
+      pager.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("renders no toolbar or footer bar when they are left out", () => {
+    renderTable();
+
+    expect(
+      document.querySelector('[data-slot="data-table-toolbar"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-slot="data-table-footer"]'),
+    ).toBeNull();
+  });
+
+  it("skeleton cells keep each column's classes so hidden columns stay hidden", () => {
+    const responsive = col.columns([
+      col.accessor("name", { header: "Name" }),
+      col.accessor("count", {
+        header: "Count",
+        meta: { className: "hidden lg:table-cell" },
+      }),
+    ]);
+    renderTable({ columns: responsive, isLoading: true, data: undefined });
+
+    const [row] = screen.getAllByTestId("data-table-skeleton-row");
+    const cells = within(row!).getAllByRole("cell");
+    expect(cells).toHaveLength(2);
+    expect(cells[0]).not.toHaveClass("hidden");
+    expect(cells[1]).toHaveClass("hidden", "lg:table-cell");
+  });
+});
+
 describe("DataTable with a large server-side list", () => {
   const TOTAL = 10_000;
   const PAGE_SIZE = 50;

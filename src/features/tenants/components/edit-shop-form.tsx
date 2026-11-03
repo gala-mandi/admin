@@ -21,6 +21,7 @@ import {
 } from "../schemas";
 import { shopDetailText, shopFormText as t } from "../text";
 import type { TenantDetail } from "../types";
+import { EditShopSummary } from "./shop-form-aside";
 import { FormAlert, FormSection, ShopFields } from "./shop-form-fields";
 import { ShopLoadError, ShopPageSkeleton } from "./shop-state";
 
@@ -83,7 +84,7 @@ function EditForm({ tenant }: { tenant: TenantDetail }) {
         noValidate
         onSubmit={onSubmit}
         aria-busy={busy || undefined}
-        className="bg-card text-card-foreground rounded-card flex flex-col gap-8 border p-5 sm:p-8"
+        className="bg-card text-card-foreground rounded-card shadow-panel flex flex-col gap-8 border p-5 sm:p-8"
       >
         {formError ? <FormAlert message={formError} /> : null}
         <FormSection title={t.shopSection} hint={t.shopSectionHint}>
@@ -121,12 +122,17 @@ export function EditShop({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex w-full max-w-7xl flex-col gap-6">
       <PageHeader
         title={shopDetailText.editTitle(query.data.name)}
         description={shopDetailText.editDescription}
       />
-      <EditForm tenant={query.data} />
+      <div className="grid items-start gap-6 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          <EditForm tenant={query.data} />
+        </div>
+        <EditShopSummary tenant={query.data} />
+      </div>
     </div>
   );
 }

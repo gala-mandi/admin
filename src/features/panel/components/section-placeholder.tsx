@@ -17,6 +17,7 @@ export function SectionPlaceholder({ section }: { section: PanelSection }) {
           icon={Construction}
           title={panelText.comingSoon.title}
           body={panelText.comingSoon.body}
+          className="bg-card/60 border-dashed py-20 shadow-none"
         />
       </div>
     </RequirePermission>

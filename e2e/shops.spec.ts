@@ -219,6 +219,12 @@ const mainMenu = (page: Page) =>
   page.getByRole("navigation", { name: "Main menu" });
 const shopRows = (page: Page) =>
   page.getByRole("table", { name: "Shops" }).locator("tbody tr");
+const statusCard = (page: Page, name: string) =>
+  page
+    .getByRole("group", { name: "Filter shops by status" })
+    .getByRole("button", { name: new RegExp(`^${name}`) });
+/** The status cards count shops with `limit=1`. */
+const isCountUrl = (url: string) => /[?&]limit=1(&|$)/.test(url);
 
 async function fillNewShop(page: Page, ownerPhone: string) {
   await page.getByLabel("Shop name").fill("Ghulam Rasool & Sons");
@@ -250,20 +256,21 @@ test.describe("shops", () => {
     await expect(shopRows(page)).toHaveCount(1);
     await expect(shopRows(page).first()).toContainText("Al-Madina Traders");
 
-    await page.getByRole("combobox", { name: "Status" }).click();
-    await page.getByRole("option", { name: "Suspended" }).click();
+    await statusCard(page, "Suspended").click();
     await expect(page).toHaveURL("/shops?q=okara&status=suspended");
     await expect(page.getByText("No shops match")).toBeVisible();
 
     await page.reload();
     await expect(page).toHaveURL("/shops?q=okara&status=suspended");
     await expect(page.getByLabel("Search shops")).toHaveValue("okara");
-    await expect(page.getByRole("combobox", { name: "Status" })).toHaveText(
-      "Suspended",
+    await expect(statusCard(page, "Suspended")).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
     await expect(page.getByText("No shops match")).toBeVisible();
-    expect(requests.at(-1)?.url).toContain("search=okara");
-    expect(requests.at(-1)?.url).toContain("status=suspended");
+    const lastList = requests.filter((r) => !isCountUrl(r.url)).at(-1);
+    expect(lastList?.url).toContain("search=okara");
+    expect(lastList?.url).toContain("status=suspended");
 
     await page.goBack();
     await expect(page).toHaveURL("/shops?q=okara");
@@ -290,8 +297,8 @@ test.describe("shops", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Ghulam Rasool & Sons" }),
     ).toBeVisible();
-    const details = page.getByRole("region", { name: "Shop details" });
-    await expect(details).toContainText("Trial");
+    const statusPanel = page.getByRole("region", { name: "Status" });
+    await expect(statusPanel).toContainText("Trial");
     await expect(page.getByRole("region", { name: "Owner" })).toContainText(
       "must change the temporary password",
     );
@@ -309,7 +316,7 @@ test.describe("shops", () => {
     await expect(confirm).toContainText("signed out within 15 minutes");
     await confirm.getByRole("button", { name: "Suspend shop" }).click();
     await expect(confirm).toBeHidden();
-    await expect(details).toContainText("Suspended");
+    await expect(statusPanel).toContainText("Suspended");
     await expect(
       page.getByText("Ghulam Rasool & Sons is suspended"),
     ).toBeVisible();
@@ -321,7 +328,7 @@ test.describe("shops", () => {
     });
     await activate.getByRole("button", { name: "Activate shop" }).click();
     await expect(activate).toBeHidden();
-    await expect(details).toContainText("Active");
+    await expect(statusPanel).toContainText("Active");
     await expect(
       page.getByRole("button", { name: "Suspend shop" }),
     ).toBeVisible();

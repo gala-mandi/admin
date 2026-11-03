@@ -83,8 +83,16 @@ describe("ShopDetail", { timeout: 15_000 }, () => {
     const shop = screen.getByRole("region", { name: "Shop details" });
     expect(shop).toHaveTextContent("Shop 12, Grain Market");
     expect(shop).toHaveTextContent("03001234567");
-    expect(shop).toHaveTextContent("3 users");
-    expect(shop).toHaveTextContent("27 Oct 2026");
+    const status = screen.getByRole("region", { name: "Status" });
+    expect(status).toHaveTextContent("Active");
+    expect(status).toHaveTextContent("Its users can sign in and work.");
+    expect(
+      within(status).getByRole("button", { name: "Suspend shop" }),
+    ).toBeInTheDocument();
+    const facts = screen.getByRole("region", { name: "Key facts" });
+    expect(facts).toHaveTextContent("3 users");
+    expect(facts).toHaveTextContent("27 Oct 2026");
+    expect(facts).toHaveTextContent("al-madina-traders");
     const owner = screen.getByRole("region", { name: "Owner" });
     expect(owner).toHaveTextContent("Haji Aslam");
     expect(owner).toHaveTextContent("03007654321");
@@ -127,9 +135,9 @@ describe("ShopDetail", { timeout: 15_000 }, () => {
     expect(actionCalls(fake).map((c) => c.url)).toEqual([
       "/admin/tenants/t1/suspend",
     ]);
-    expect(
-      screen.getByRole("region", { name: "Shop details" }),
-    ).toHaveTextContent("Suspended");
+    const status = screen.getByRole("region", { name: "Status" });
+    expect(status).toHaveTextContent("Suspended");
+    expect(status).toHaveTextContent("can’t sign in until you activate");
     expect(
       screen.getByRole("button", { name: "Activate shop" }),
     ).toBeInTheDocument();

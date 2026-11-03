@@ -18,22 +18,41 @@ export const tenantStatusText = {
 export const shopsListText = {
   newShop: "New shop",
   searchLabel: "Search shops",
-  searchPlaceholder: "Shop, owner, phone or city",
-  statusLabel: "Status",
-  statusAll: "All statuses",
+  searchPlaceholder: "Search by shop, owner, phone or city",
   sortLabel: "Sort by",
+  /** Visible count next to the search box. */
+  resultCount: (n: number) => plural(n, "shop", "shops"),
   caption: "Shops",
   /** Excel export: `shops-2026-10-29.xlsx`. */
   exportFileName: "shops",
   columns: {
     shop: "Shop",
     owner: "Owner",
-    phone: "Phone",
+    city: "City",
     status: "Status",
     users: "Users",
     created: "Created",
+    actions: "Actions",
   },
-  noCity: "No city",
+  /** Read before the phone under the owner's name. */
+  shopPhone: "Shop phone",
+  noValue: "—",
+  /** Owner column in the Excel export. */
+  ownerExport: (owner: string, phone: string) => `${owner} (${phone})`,
+  rowActions: {
+    view: "View details",
+    edit: "Edit shop",
+  },
+  overview: {
+    /** Accessible name of the row of status cards. */
+    label: "Filter shops by status",
+    all: "All shops",
+    allHint: "Across the platform",
+    share: (percent: number) => `${percent}% of all shops`,
+    loading: "Loading count…",
+    unavailable: "Count unavailable",
+    none: "—",
+  },
   empty: {
     title: "No shops yet",
     body: "Create the first shop to onboard a mandi. Its owner gets an account straight away.",
@@ -112,6 +131,14 @@ export const shopDetailText = {
     "Change the shop’s details. The owner account isn’t changed here.",
   shopSection: "Shop details",
   ownerSection: "Owner",
+  statusSection: "Status",
+  factsSection: "Key facts",
+  statusHint: {
+    trial: "On a free trial. Its users can sign in and work.",
+    active: "Its users can sign in and work.",
+    suspended: "Its users can’t sign in until you activate the shop.",
+    cancelled: "Its users can’t sign in until you activate the shop.",
+  } satisfies Record<TenantStatus, string>,
   fields: {
     status: "Status",
     city: "City",
@@ -125,6 +152,7 @@ export const shopDetailText = {
     ownerPhone: "Phone",
     ownerEmail: "Email",
     ownerAccount: "Account",
+    slug: "Shop ID",
   },
   users: (n: number) => plural(n, "user", "users"),
   none: "—",
@@ -166,4 +194,31 @@ export const shopPagesText = {
   detailCrumb: "Shop details",
   editCrumb: "Edit",
   editTitle: "Edit shop",
+  /** Side panel of the New shop page. */
+  nextSteps: {
+    title: "What happens next",
+    steps: [
+      {
+        title: "The owner’s account is created",
+        body: "With a temporary password that we show you once, right after you create the shop.",
+      },
+      {
+        title: "The shop gets default settings",
+        body: "It starts on a trial with the standard settings; you can change its details later.",
+      },
+      {
+        title: "The owner changes the password",
+        body: "At first sign-in they must pick their own password before they can work.",
+      },
+    ],
+  },
+  /** Side panel of the Edit shop page. */
+  summary: {
+    title: "Summary",
+    status: "Status",
+    created: "Created",
+    updated: "Last updated",
+    slug: "Shop ID",
+    note: "Suspend or activate the shop from its details page.",
+  },
 } as const;

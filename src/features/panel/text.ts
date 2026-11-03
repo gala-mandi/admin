@@ -69,6 +69,16 @@ export const panelText = {
     loading: "Loading…",
     error: "Couldn’t load your account. Check your internet and try again.",
     retry: "Try again",
+    openShops: "Open shops",
+    newShop: "New shop",
+    account: {
+      title: "Your account",
+      role: "Role",
+      email: "Email",
+      phone: "Phone",
+      none: "—",
+    },
+    sectionsTitle: "Go to",
   },
   loading: "Loading page…",
   notFound: {

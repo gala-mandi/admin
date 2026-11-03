@@ -90,7 +90,7 @@ export function CreateShopForm() {
           noValidate
           onSubmit={onSubmit}
           aria-busy={busy || undefined}
-          className="bg-card text-card-foreground rounded-card flex flex-col gap-8 border p-5 sm:p-8"
+          className="bg-card text-card-foreground rounded-card shadow-panel flex flex-col gap-8 border p-5 sm:p-8"
         >
           {formError ? <FormAlert message={formError} /> : null}
 

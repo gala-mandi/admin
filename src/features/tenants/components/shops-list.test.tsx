@@ -1,5 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -64,12 +65,36 @@ function renderList(searchParams = "", handler?: Handler) {
   return { onUrlUpdate, fake, requests: () => fake.calls.map((c) => c.url) };
 }
 
-/** Query params the list sent to `GET /admin/tenants`. */
+/** Query params the table sent to `GET /admin/tenants` (not the counts). */
 const sentParams: Record<string, unknown>[] = [];
 
+/** The status cards ask for `limit: 1` and read `meta.total`. */
+const isCount = (config: InternalAxiosRequestConfig) =>
+  (config.params as { limit?: number } | undefined)?.limit === 1;
+
 function recordParams(config: InternalAxiosRequestConfig) {
+  if (isCount(config)) return;
   sentParams.push({ ...(config.params as Record<string, unknown>) });
 }
+
+type CountStatus = "all" | "trial" | "active" | "suspended" | "cancelled";
+
+/** Answers the count requests with these totals, the rest with one shop. */
+function countsHandler(
+  totals: Record<CountStatus, number>,
+  list: Handler = (config) => ok(config, tenantList([tenantSummary()])),
+): Handler {
+  return (config) => {
+    if (!isCount(config)) return list(config);
+    const status = (config.params as { status?: CountStatus }).status ?? "all";
+    return ok(config, tenantList([], { limit: 1, total: totals[status] }));
+  };
+}
+
+const card = (name: string) =>
+  within(
+    screen.getByRole("group", { name: "Filter shops by status" }),
+  ).getByRole("button", { name: new RegExp(`^${name}`) });
 
 const lastUrl = (spy: ReturnType<typeof vi.fn<OnUrlUpdateFunction>>) =>
   spy.mock.calls.at(-1)?.[0].queryString;
@@ -89,7 +114,7 @@ describe("ShopsList", { timeout: 15_000 }, () => {
     useSessionStore.getState().clear();
   });
 
-  it("lists shops with owner, phone, status, users and the Karachi date", async () => {
+  it("lists shops with avatar, slug, owner and phone, city, status, users and the Karachi date", async () => {
     renderList();
 
     const table = await screen.findByRole("table", { name: "Shops" });
@@ -98,16 +123,168 @@ describe("ShopsList", { timeout: 15_000 }, () => {
     });
     expect(link).toHaveAttribute("href", "/shops/t1");
     const row = link.closest("tr")!;
-    expect(row).toHaveTextContent("Okara");
-    expect(row).toHaveTextContent("Haji Aslam");
-    expect(row).toHaveTextContent("03001234567");
-    expect(row).toHaveTextContent("Active");
-    expect(row).toHaveTextContent("3");
-    expect(row).toHaveTextContent("27 Oct 2026");
+    const cells = within(row).getAllByRole("cell");
+
+    const avatar = cells[0]!.querySelector('[data-slot="shop-avatar"]');
+    expect(avatar).toHaveTextContent("AT");
+    expect(avatar).toHaveAttribute("aria-hidden", "true");
+    expect(cells[0]).toHaveTextContent("al-madina-traders");
+
+    // The shop phone sits under the owner; there is no Phone column.
+    expect(cells[1]).toHaveTextContent("Haji Aslam");
+    expect(cells[1]).toHaveTextContent("Shop phone: 03001234567");
+    expect(within(row).getByText("03001234567")).toHaveAttribute("dir", "ltr");
+    expect(
+      within(table).queryByRole("columnheader", { name: "Phone" }),
+    ).toBeNull();
+
+    expect(cells[2]).toHaveTextContent("Okara");
+    expect(cells[3]).toHaveTextContent("Active");
+    expect(cells[4]).toHaveTextContent("3");
+    expect(cells[5]).toHaveTextContent("27 Oct 2026");
+    expect(cells[5]!.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      "2026-10-26T20:30:00Z",
+    );
+    // Phones show shop, status and actions; Owner from `md`, the rest from `lg`.
+    expect(cells[1]).toHaveClass("hidden", "md:table-cell");
+    for (const i of [2, 4, 5]) {
+      expect(cells[i]).toHaveClass("hidden", "lg:table-cell");
+    }
+    expect(cells[0]).not.toHaveClass("hidden");
+    expect(cells[3]).not.toHaveClass("hidden");
     expect(screen.getByRole("link", { name: "New shop" })).toHaveAttribute(
       "href",
       "/shops/new",
     );
+  });
+
+  it("shows a dash for a shop without a city", async () => {
+    renderList("", (config) =>
+      ok(config, tenantList([tenantSummary({ city: null })])),
+    );
+
+    const link = await screen.findByRole("link", { name: "Al-Madina Traders" });
+    const cells = within(link.closest("tr")!).getAllByRole("cell");
+    expect(cells[2]).toHaveTextContent(/^—$/);
+    expect(screen.queryByText("No city")).toBeNull();
+  });
+
+  it("gives the same shop the same avatar colour", async () => {
+    renderList("", (config) =>
+      ok(
+        config,
+        tenantList([
+          tenantSummary(),
+          tenantSummary({ id: "t2", name: "Bismillah Grain Co" }),
+        ]),
+      ),
+    );
+
+    await screen.findByText("Bismillah Grain Co");
+    const avatars = document.querySelectorAll('[data-slot="shop-avatar"]');
+    expect(avatars[1]).toHaveTextContent("BC");
+    const tone = avatars[0]!.getAttribute("data-tone");
+    expect(tone).toMatch(/^[1-6]$/);
+    cleanup();
+    renderList();
+    await screen.findByText("Al-Madina Traders");
+    expect(document.querySelector('[data-slot="shop-avatar"]')).toHaveAttribute(
+      "data-tone",
+      tone,
+    );
+  });
+
+  it("row menu links to the shop's details and edit pages", async () => {
+    renderList();
+
+    const trigger = await screen.findByRole("button", {
+      name: "Actions for Al-Madina Traders",
+    });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+
+    expect(
+      await screen.findByRole("menuitem", { name: "View details" }),
+    ).toHaveAttribute("href", "/shops/t1");
+    expect(screen.getByRole("menuitem", { name: "Edit shop" })).toHaveAttribute(
+      "href",
+      "/shops/t1/edit",
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("status cards show platform-wide counts, ignoring the search", async () => {
+    renderList(
+      "?q=okara",
+      countsHandler(
+        { all: 40, active: 24, trial: 10, suspended: 5, cancelled: 1 },
+        (config) => ok(config, tenantList([tenantSummary()])),
+      ),
+    );
+
+    await waitFor(() => expect(card("Active")).toHaveTextContent("24"));
+    expect(card("All shops")).toHaveTextContent("40");
+    expect(card("All shops")).toHaveTextContent("Across the platform");
+    expect(card("Active")).toHaveTextContent("60% of all shops");
+    expect(card("Trial")).toHaveTextContent("10");
+    expect(card("Trial")).toHaveTextContent("25% of all shops");
+    expect(card("Suspended")).toHaveTextContent("5");
+    expect(card("Cancelled")).toHaveTextContent("1");
+    expect(card("Cancelled")).toHaveTextContent("3% of all shops");
+    expect(card("All shops")).toHaveAttribute("aria-pressed", "true");
+    expect(card("Active")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("the count requests never carry the search", async () => {
+    const counts: Record<string, unknown>[] = [];
+    renderList("?q=okara", (config) => {
+      if (isCount(config)) {
+        counts.push({ ...(config.params as Record<string, unknown>) });
+      }
+      return ok(config, tenantList([tenantSummary()]));
+    });
+
+    await screen.findByText("Al-Madina Traders");
+    await waitFor(() => expect(counts).toHaveLength(5));
+    expect(counts).toEqual(
+      expect.arrayContaining([
+        { page: 1, limit: 1 },
+        { page: 1, limit: 1, status: "active" },
+        { page: 1, limit: 1, status: "trial" },
+        { page: 1, limit: 1, status: "suspended" },
+        { page: 1, limit: 1, status: "cancelled" },
+      ]),
+    );
+  });
+
+  it("shows skeletons while the counts load", async () => {
+    renderList("", (config) =>
+      isCount(config)
+        ? (new Promise(() => {}) as unknown as ReturnType<typeof ok>)
+        : ok(config, tenantList([tenantSummary()])),
+    );
+
+    await screen.findByText("Al-Madina Traders");
+    expect(screen.getAllByTestId("status-count-skeleton")).toHaveLength(5);
+    expect(card("Active")).toHaveTextContent("Loading count…");
+  });
+
+  it("shows a dash when a count can't load", async () => {
+    renderList("", (config) =>
+      isCount(config)
+        ? httpError(config, 500)
+        : ok(config, tenantList([tenantSummary()])),
+    );
+
+    // The counts retry a server error once before giving up.
+    await waitFor(
+      () => expect(card("Active")).toHaveTextContent("Count unavailable"),
+      { timeout: 4000 },
+    );
+    expect(card("Active")).toHaveTextContent("—");
+    expect(screen.queryByTestId("status-count-skeleton")).toBeNull();
+    // The table itself is fine.
+    expect(screen.getByText("Al-Madina Traders")).toBeInTheDocument();
   });
 
   it("sends the URL state to the server", async () => {
@@ -125,9 +302,9 @@ describe("ShopsList", { timeout: 15_000 }, () => {
       sort: "name",
     });
     expect(screen.getByLabelText("Search shops")).toHaveValue("okara");
-    expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
-      "Suspended",
-    );
+    expect(card("Suspended")).toHaveAttribute("aria-pressed", "true");
+    expect(card("All shops")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("combobox", { name: "Status" })).toBeNull();
   });
 
   it("puts the debounced search in the URL and goes back to page 1", async () => {
@@ -149,23 +326,43 @@ describe("ShopsList", { timeout: 15_000 }, () => {
     );
   });
 
-  it("puts the status filter in the URL", async () => {
-    const { onUrlUpdate } = renderList("?q=okara", (config) => {
+  it("a status card puts the status filter in the URL", async () => {
+    const { onUrlUpdate } = renderList("?q=okara&page=2", (config) => {
       recordParams(config);
-      return ok(config, tenantList([tenantSummary()]));
+      return ok(config, tenantList([tenantSummary()], { total: 30 }));
     });
     await screen.findByText("Al-Madina Traders");
 
-    const trigger = screen.getByRole("combobox", { name: "Status" });
-    fireEvent.keyDown(trigger, { key: "Enter" });
-    fireEvent.click(await screen.findByRole("option", { name: "Suspended" }));
+    fireEvent.click(card("Suspended"));
 
     await waitFor(() =>
       expect(lastUrl(onUrlUpdate)).toBe("?q=okara&status=suspended"),
     );
     await waitFor(() =>
-      expect(sentParams.at(-1)).toMatchObject({ status: "suspended" }),
+      expect(sentParams.at(-1)).toMatchObject({
+        page: 1,
+        search: "okara",
+        status: "suspended",
+      }),
     );
+    expect(card("Suspended")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("picking the selected card again, or All shops, clears the status", async () => {
+    const { onUrlUpdate } = renderList("?status=active&sort=name");
+    await screen.findByText("Al-Madina Traders");
+    expect(card("Active")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(card("Active"));
+    await waitFor(() => expect(lastUrl(onUrlUpdate)).toBe("?sort=name"));
+    expect(card("All shops")).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(card("Trial"));
+    await waitFor(() =>
+      expect(lastUrl(onUrlUpdate)).toBe("?sort=name&status=trial"),
+    );
+    fireEvent.click(card("All shops"));
+    await waitFor(() => expect(lastUrl(onUrlUpdate)).toBe("?sort=name"));
   });
 
   it("sorting and paging update the URL", async () => {
@@ -189,6 +386,17 @@ describe("ShopsList", { timeout: 15_000 }, () => {
     expect(
       screen.getByRole("button", { name: "Export to Excel" }),
     ).toBeEnabled();
+    expect(screen.getByTestId("shops-result-count")).toHaveTextContent(
+      "1 shop",
+    );
+    // The toolbar sits inside the table card.
+    const toolbar = screen
+      .getByRole("search")
+      .closest('[data-slot="data-table-toolbar"]');
+    expect(toolbar).not.toBeNull();
+    expect(toolbar!.parentElement).toContainElement(
+      screen.getByRole("table", { name: "Shops" }),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     await waitFor(() => expect(lastUrl(onUrlUpdate)).toBe("?sort=name"));
