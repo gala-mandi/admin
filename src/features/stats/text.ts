@@ -128,6 +128,7 @@ export const statsText = {
       lastActivity: "Last activity",
     },
     count: (n: string) => (n === "1" ? "1 shop" : `${n} shops`),
+    chartCount: "Shops",
   },
 } as const;
 

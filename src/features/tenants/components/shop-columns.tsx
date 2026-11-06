@@ -10,6 +10,7 @@ import {
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { formatDate, formatRelative } from "@/lib/format";
 import { shopRoutes } from "@/lib/routes";
+import { cityChartMeta, statusChartMeta } from "../chart-meta";
 import { shopsListText as t, tenantStatusText } from "../text";
 import type { TenantSummary } from "../types";
 import { ShopAvatar } from "./shop-avatar";
@@ -77,7 +78,7 @@ export const shopColumns: DataTableColumn<TenantSummary>[] = col.columns([
   col.accessor("city", {
     header: t.columns.city,
     enableSorting: false,
-    meta: { label: t.columns.city, className: wideOnly },
+    meta: { label: t.columns.city, className: wideOnly, chart: cityChartMeta },
     cell: ({ getValue }) => {
       const city = getValue();
       return city ? (
@@ -99,13 +100,19 @@ export const shopColumns: DataTableColumn<TenantSummary>[] = col.columns([
     meta: {
       label: t.columns.status,
       exportValue: (row: TenantSummary) => tenantStatusText[row.status],
+      chart: statusChartMeta,
     },
     cell: ({ getValue }) => <StatusBadge status={getValue()} />,
   }),
   col.accessor("userCount", {
     header: t.columns.users,
     enableSorting: false,
-    meta: { align: "end", label: t.columns.users, className: wideOnly },
+    meta: {
+      align: "end",
+      label: t.columns.users,
+      className: wideOnly,
+      chart: { measure: true },
+    },
     cell: ({ getValue }) => (
       <span className="inline-flex items-center gap-1.5 tabular-nums">
         <Users aria-hidden className="text-muted-foreground size-3.5" />
@@ -120,6 +127,7 @@ export const shopColumns: DataTableColumn<TenantSummary>[] = col.columns([
       label: t.columns.created,
       className: wideOnly,
       exportValue: (row: TenantSummary) => formatDate(row.createdAt),
+      chart: { group: "date" },
     },
     cell: ({ getValue }) => (
       <div className="flex flex-col">

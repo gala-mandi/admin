@@ -23,6 +23,8 @@ export const shopsListText = {
   /** Visible count next to the search box. */
   resultCount: (n: number) => plural(n, "shop", "shops"),
   caption: "Shops",
+  /** Name of the count measure in the chart view. */
+  chartCount: "Shops",
   /** Excel export: `shops-2026-10-29.xlsx`. */
   exportFileName: "shops",
   columns: {

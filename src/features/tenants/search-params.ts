@@ -16,3 +16,8 @@ export const SHOPS_PAGE_SIZE = 20;
 
 /** Column visibility is remembered under this table id. */
 export const SHOPS_TABLE_ID = "shops";
+
+/** `?view=chart` shows the shops as a chart; the table is the default. */
+export const shopListView = parseAsStringLiteral(["table", "chart"] as const)
+  .withDefault("table")
+  .withOptions({ history: "replace" });

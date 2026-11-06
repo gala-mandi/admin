@@ -14,13 +14,22 @@ import {
 import {
   ArrowDown,
   ArrowUp,
+  ChartColumn,
   ChevronsUpDown,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
   Inbox,
+  Table2,
 } from "lucide-react";
-import { type MouseEvent, type ReactNode, useId, useMemo } from "react";
+import dynamic from "next/dynamic";
+import {
+  type MouseEvent,
+  type ReactNode,
+  useId,
+  useMemo,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,9 +48,49 @@ import {
   type DataTableFeatures,
   dataTableColumnHelper,
   dataTableFeatures,
+  getChartColumns,
   getLabelledColumns,
 } from "./columns";
+import type { DataTableChartViewProps } from "./chart-view";
 import { dataTableText as t } from "./text";
+import { formatCount } from "@/lib/format";
+
+/**
+ * The chart view (and with it the chart UI and ECharts) only loads when
+ * someone switches a table to "Chart".
+ */
+const DataTableChartView = dynamic(() => import("./chart-view"), {
+  ssr: false,
+  loading: () => (
+    <div className="p-5">
+      <Skeleton className="h-72 w-full rounded-2xl" />
+    </div>
+  ),
+}) as <TData extends RowData>(
+  props: DataTableChartViewProps<TData>,
+) => ReactNode;
+
+export type DataTableView = "table" | "chart";
+
+/** Options of the "Table | Chart" toggle. */
+export interface DataTableChartViewOptions<TData extends RowData> {
+  /** Remembers the chart type (`localStorage`); default the caption. */
+  id?: string;
+  /**
+   * Rows to chart, e.g. every row matching the filters. Default the loaded
+   * page (`data`); then the pager stays to chart other pages.
+   */
+  rows?: TData[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+  /** How many rows `rows` stands for (shows "first N of M" when more). */
+  total?: number;
+  /** Name of the count measure, e.g. "Shops". */
+  countLabel?: string;
+  /** Group by this column (or `<id>:month` / `<id>:day`) first. */
+  defaultGroupBy?: string;
+}
 
 export interface DataTableProps<TData extends RowData> {
   /** Stable (module scope or memoised) column definitions. */
@@ -91,6 +140,14 @@ export interface DataTableProps<TData extends RowData> {
   toolbar?: ReactNode;
   /** Shown inside the card below the pager (notes, totals…). */
   footer?: ReactNode;
+  /**
+   * "Table | Chart" toggle. Shown when a column has `meta.chart.group`;
+   * `false` turns it off, an object sets what the chart uses.
+   */
+  chartView?: false | DataTableChartViewOptions<TData>;
+  /** Controlled view; leave out to let the table keep it. */
+  view?: DataTableView;
+  onViewChange?: (view: DataTableView) => void;
 }
 
 const emptyRows: never[] = [];
@@ -222,10 +279,78 @@ function selectColumn<TData extends RowData>(
   });
 }
 
+/** "Table | Chart": two pressed-state buttons. */
+function ViewToggle({
+  value,
+  onChange,
+  className,
+}: {
+  value: DataTableView;
+  onChange: (view: DataTableView) => void;
+  className?: string;
+}) {
+  const options = [
+    { view: "table" as const, label: t.viewMode.table, icon: Table2 },
+    { view: "chart" as const, label: t.viewMode.chart, icon: ChartColumn },
+  ];
+  return (
+    <div
+      role="group"
+      aria-label={t.viewMode.label}
+      className={cn(
+        "bg-surface-muted/70 inline-flex shrink-0 self-start rounded-xl p-1 lg:self-center",
+        className,
+      )}
+    >
+      {options.map(({ view, label, icon: Icon }) => {
+        const on = value === view;
+        return (
+          <button
+            key={view}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(view)}
+            className={cn(
+              "focus-visible:ring-ring/50 inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition-[background-color,color,box-shadow] outline-none focus-visible:ring-3",
+              on
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon aria-hidden className="size-4" />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** What the chart is based on, under the chart. */
+function chartBasis(
+  rows: readonly unknown[] | undefined,
+  page: boolean,
+  rowCount: number,
+  total: number | undefined,
+): string | null {
+  if (!rows) return null;
+  const n = rows.length;
+  if (page) {
+    return rowCount > n
+      ? t.chart.basis.page(formatCount(n), formatCount(rowCount))
+      : t.chart.basis.all(formatCount(n));
+  }
+  const all = total ?? n;
+  return all > n
+    ? t.chart.basis.truncated(formatCount(n), formatCount(all))
+    : t.chart.basis.all(formatCount(n));
+}
+
 /**
  * Shared list table (TanStack Table v9) with server-side paging and sorting,
  * optional bulk select and column visibility, loading skeleton rows, an empty
- * state and an error state with retry.
+ * state and an error state with retry. Tables whose columns have
+ * `meta.chart.group` also get a "Table | Chart" toggle (see `chart-view`).
  */
 export function DataTable<TData extends RowData>({
   columns,
@@ -251,8 +376,22 @@ export function DataTable<TData extends RowData>({
   onColumnVisibilityChange,
   toolbar,
   footer,
+  chartView,
+  view: controlledView,
+  onViewChange,
 }: DataTableProps<TData>) {
   const selectable = Boolean(onRowSelectionChange);
+  const chartable =
+    chartView !== false && getChartColumns(columns).groups.length > 0;
+  const [ownView, setOwnView] = useState<DataTableView>("table");
+  const view: DataTableView = chartable ? (controlledView ?? ownView) : "table";
+  const setView = (next: DataTableView) => {
+    setOwnView(next);
+    onViewChange?.(next);
+  };
+  const chartOptions = chartView || {};
+  const chartRows = chartOptions.rows ?? data;
+  const chartsPage = !chartOptions.rows;
 
   const allColumns = useMemo(
     () =>
@@ -316,7 +455,11 @@ export function DataTable<TData extends RowData>({
   const from =
     rowCount === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
   const to = Math.min(rowCount, from + rows.length - 1);
-  const showPager = !isLoading && !isError && rowCount > 0;
+  const showPager =
+    !isLoading &&
+    !isError &&
+    rowCount > 0 &&
+    (view === "table" || (chartsPage && rowCount > rows.length));
   const busy = isLoading || isFetching;
 
   const selectedIds = Object.keys(rowSelection);
@@ -326,16 +469,44 @@ export function DataTable<TData extends RowData>({
 
   return (
     <div className="bg-card text-card-foreground rounded-card shadow-panel overflow-hidden border">
-      {toolbar ? (
+      {toolbar || chartable ? (
         <div
           data-slot="data-table-toolbar"
-          className="border-b px-4 py-3 sm:px-5"
+          className="flex flex-col gap-3 border-b px-4 py-3 sm:px-5 lg:flex-row lg:items-center"
         >
-          {toolbar}
+          {toolbar ? <div className="min-w-0 flex-1">{toolbar}</div> : null}
+          {chartable ? (
+            <ViewToggle
+              value={view}
+              onChange={setView}
+              className={toolbar ? undefined : "ms-auto"}
+            />
+          ) : null}
         </div>
       ) : null}
 
-      {selectable && selectedIds.length > 0 ? (
+      {view === "chart" ? (
+        <div data-slot="data-table-chart" className="px-4 py-5 sm:px-5">
+          <DataTableChartView
+            id={chartOptions.id ?? caption}
+            columns={columns}
+            rows={chartRows}
+            isLoading={chartOptions.isLoading ?? isLoading}
+            isError={chartOptions.isError ?? isError}
+            onRetry={chartOptions.onRetry ?? onRetry}
+            countLabel={chartOptions.countLabel}
+            defaultGroupBy={chartOptions.defaultGroupBy}
+            footer={chartBasis(
+              chartRows,
+              chartsPage,
+              rowCount,
+              chartOptions.total,
+            )}
+          />
+        </div>
+      ) : null}
+
+      {view === "table" && selectable && selectedIds.length > 0 ? (
         <div
           role="region"
           aria-label={t.selection.bar}
@@ -364,145 +535,150 @@ export function DataTable<TData extends RowData>({
         {isLoading || isError ? "" : t.results(rowCount)}
       </p>
 
-      <Table
-        aria-busy={busy || undefined}
-        className={cn(isFetching && !isLoading && "opacity-60")}
-      >
-        <TableCaption className="sr-only">{caption}</TableCaption>
-        <TableHeader className="bg-surface-muted/50">
-          {table.getHeaderGroups().map((group) => (
-            <TableRow key={group.id} className="hover:bg-transparent">
-              {group.headers.map((header) => (
-                <HeaderCell
-                  key={header.id}
-                  header={header}
-                  render={<table.FlexRender header={header} />}
-                />
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            Array.from({ length: Math.min(pagination.pageSize, 8) }, (_, i) => (
-              <TableRow
-                key={`skeleton-${i}`}
-                data-testid="data-table-skeleton-row"
-                className="hover:bg-transparent"
-              >
-                {(visibleColumns.length ? visibleColumns : [null]).map(
-                  (column, j) => (
-                    <TableCell
-                      key={column?.id ?? j}
-                      className={cn(
-                        "py-4",
-                        edgeCell,
-                        column?.columnDef.meta?.className,
-                      )}
-                    >
-                      {i === 0 && j === 0 ? (
-                        <span className="sr-only" role="status">
-                          {t.loading}
-                        </span>
-                      ) : null}
-                      <Skeleton
-                        className={cn(
-                          "h-4 w-full max-w-40",
-                          j === 0 && "max-w-56",
-                        )}
-                      />
-                    </TableCell>
-                  ),
-                )}
+      {view === "table" ? (
+        <Table
+          aria-busy={busy || undefined}
+          className={cn(isFetching && !isLoading && "opacity-60")}
+        >
+          <TableCaption className="sr-only">{caption}</TableCaption>
+          <TableHeader className="bg-surface-muted/50">
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id} className="hover:bg-transparent">
+                {group.headers.map((header) => (
+                  <HeaderCell
+                    key={header.id}
+                    header={header}
+                    render={<table.FlexRender header={header} />}
+                  />
+                ))}
               </TableRow>
-            ))
-          ) : isError ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={columnCount}
-                className="p-0 whitespace-normal"
-              >
-                <div
-                  role="alert"
-                  className="flex flex-col items-center gap-2 px-6 py-14 text-center"
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from(
+                { length: Math.min(pagination.pageSize, 8) },
+                (_, i) => (
+                  <TableRow
+                    key={`skeleton-${i}`}
+                    data-testid="data-table-skeleton-row"
+                    className="hover:bg-transparent"
+                  >
+                    {(visibleColumns.length ? visibleColumns : [null]).map(
+                      (column, j) => (
+                        <TableCell
+                          key={column?.id ?? j}
+                          className={cn(
+                            "py-4",
+                            edgeCell,
+                            column?.columnDef.meta?.className,
+                          )}
+                        >
+                          {i === 0 && j === 0 ? (
+                            <span className="sr-only" role="status">
+                              {t.loading}
+                            </span>
+                          ) : null}
+                          <Skeleton
+                            className={cn(
+                              "h-4 w-full max-w-40",
+                              j === 0 && "max-w-56",
+                            )}
+                          />
+                        </TableCell>
+                      ),
+                    )}
+                  </TableRow>
+                ),
+              )
+            ) : isError ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={columnCount}
+                  className="p-0 whitespace-normal"
                 >
-                  <span className="bg-destructive-soft text-destructive mb-1 flex size-12 items-center justify-center rounded-full">
-                    <CircleAlert aria-hidden className="size-5" />
-                  </span>
-                  <p className="font-heading text-base font-bold">
-                    {t.errorTitle}
-                  </p>
-                  <p className="text-muted-foreground max-w-sm text-sm">
-                    {t.errorBody}
-                  </p>
-                  {onRetry ? (
-                    <Button
-                      variant="outline"
-                      className="mt-2"
-                      onClick={onRetry}
-                    >
-                      {t.retry}
-                    </Button>
-                  ) : null}
-                </div>
-              </TableCell>
-            </TableRow>
-          ) : rows.length === 0 ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={columnCount}
-                className="p-0 whitespace-normal"
-              >
-                {empty ?? (
-                  <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
-                    <span className="bg-secondary text-secondary-foreground mb-1 flex size-12 items-center justify-center rounded-full">
-                      <Inbox aria-hidden className="size-5" />
+                  <div
+                    role="alert"
+                    className="flex flex-col items-center gap-2 px-6 py-14 text-center"
+                  >
+                    <span className="bg-destructive-soft text-destructive mb-1 flex size-12 items-center justify-center rounded-full">
+                      <CircleAlert aria-hidden className="size-5" />
                     </span>
-                    <p className="text-muted-foreground">{t.emptyTitle}</p>
+                    <p className="font-heading text-base font-bold">
+                      {t.errorTitle}
+                    </p>
+                    <p className="text-muted-foreground max-w-sm text-sm">
+                      {t.errorBody}
+                    </p>
+                    {onRetry ? (
+                      <Button
+                        variant="outline"
+                        className="mt-2"
+                        onClick={onRetry}
+                      >
+                        {t.retry}
+                      </Button>
+                    ) : null}
                   </div>
-                )}
-              </TableCell>
-            </TableRow>
-          ) : (
-            rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={
-                  selectable && row.getIsSelected() ? "selected" : undefined
-                }
-                onClick={
-                  onRowClick
-                    ? (event) => {
-                        if (!fromInteractive(event)) onRowClick(row.original);
-                      }
-                    : undefined
-                }
-                className={cn(
-                  "border-border/70 hover:bg-muted/40",
-                  onRowClick && "cursor-pointer",
-                )}
-              >
-                {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta;
-                  return (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        "py-3.5",
-                        edgeCell,
-                        alignClass(meta?.align),
-                        meta?.className,
-                      )}
-                    >
-                      <table.FlexRender cell={cell} />
-                    </TableCell>
-                  );
-                })}
+                </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : rows.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={columnCount}
+                  className="p-0 whitespace-normal"
+                >
+                  {empty ?? (
+                    <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
+                      <span className="bg-secondary text-secondary-foreground mb-1 flex size-12 items-center justify-center rounded-full">
+                        <Inbox aria-hidden className="size-5" />
+                      </span>
+                      <p className="text-muted-foreground">{t.emptyTitle}</p>
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={
+                    selectable && row.getIsSelected() ? "selected" : undefined
+                  }
+                  onClick={
+                    onRowClick
+                      ? (event) => {
+                          if (!fromInteractive(event)) onRowClick(row.original);
+                        }
+                      : undefined
+                  }
+                  className={cn(
+                    "border-border/70 hover:bg-muted/40",
+                    onRowClick && "cursor-pointer",
+                  )}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta;
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          "py-3.5",
+                          edgeCell,
+                          alignClass(meta?.align),
+                          meta?.className,
+                        )}
+                      >
+                        <table.FlexRender cell={cell} />
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      ) : null}
 
       {showPager ? (
         <nav

@@ -1,12 +1,29 @@
 export {
+  type ChartGroupColumn,
+  type ChartMeasureColumn,
   type DataTableColumn,
+  type DataTableColumnChart,
   type DataTableColumnMeta,
   type DataTableExportValue,
   dataTableColumnHelper,
+  getChartColumns,
   getColumnId,
   getLabelledColumns,
 } from "./columns";
-export { DataTable, type DataTableProps } from "./data-table";
+export {
+  type GroupOption,
+  groupOptions,
+  groupRows,
+  MAX_GROUPS,
+  type MeasureOption,
+  measureOptions,
+} from "./chart-data";
+export {
+  DataTable,
+  type DataTableChartViewOptions,
+  type DataTableProps,
+  type DataTableView,
+} from "./data-table";
 export {
   DataTableExport,
   type DataTableExportProps,

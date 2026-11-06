@@ -6,6 +6,7 @@ import {
   monthLabel,
 } from "@/components/charts/data";
 import type { ChartData } from "@/components/charts/types";
+import { statusChartColors } from "@/features/tenants/chart-meta";
 import type { TenantSummary } from "@/features/tenants/types";
 import { tenantStatusText } from "@/features/tenants/text";
 import { actionName, statsText } from "./text";
@@ -23,17 +24,6 @@ export const CITY_CHART_MAX = 12;
 /** Shops in the users-per-shop chart. */
 export const USERS_TOP_N = 10;
 
-/**
- * Status colours carry meaning (active = success, suspended = danger), so
- * the status chart uses the status tokens, not the categorical palette.
- */
-const statusColorVar = {
-  active: "--success",
-  trial: "--primary",
-  suspended: "--destructive",
-  cancelled: "--chart-other",
-} as const;
-
 const statusOrder = ["active", "trial", "suspended", "cancelled"] as const;
 
 export function shopsByStatusData(stats: PlatformStats): ChartData {
@@ -42,7 +32,7 @@ export function shopsByStatusData(stats: PlatformStats): ChartData {
       key: status,
       label: tenantStatusText[status],
       value: stats.shops[status],
-      colorVar: statusColorVar[status],
+      colorVar: statusChartColors[status],
     })),
     { seriesName: t.status.series, sort: "none" },
   );
