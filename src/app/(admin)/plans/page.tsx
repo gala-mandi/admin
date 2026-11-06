@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { SectionPlaceholder } from "@/features/panel/components/section-placeholder";
+import { RequirePermission } from "@/features/panel/components/require-permission";
 import { pageTitle, panelText } from "@/features/panel/text";
+import { PlansList } from "@/features/plans/components/plans-list";
 
 export const metadata: Metadata = {
   title: pageTitle(panelText.sections.plans.label),
 };
 
-/** Placeholder until the Plans ticket builds this screen. */
 export default function PlansPage() {
-  return <SectionPlaceholder section="plans" />;
+  return (
+    <RequirePermission permission="plans:manage">
+      <PlansList />
+    </RequirePermission>
+  );
 }

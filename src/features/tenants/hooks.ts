@@ -7,8 +7,11 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { toApiError } from "@/lib/api-error";
+import { planKeys } from "@/features/plans/hooks";
 import {
   activateTenant,
+  assignSubscription,
+  extendSubscription,
   createTenant,
   getTenant,
   listAllTenants,
@@ -17,7 +20,10 @@ import {
   updateTenant,
 } from "./api";
 import {
+  type AssignSubscriptionInput,
   type CreateTenantInput,
+  type ExtendSubscriptionInput,
+  type SubscriptionView,
   type TenantDetail,
   type TenantList,
   type TenantListParams,
@@ -182,5 +188,44 @@ export function useTenantStatusAction(id: string) {
     mutationFn: (action: TenantStatusAction) =>
       action === "suspend" ? suspendTenant(id) : activateTenant(id),
     onSuccess: storeTenant,
+  });
+}
+
+/**
+ * Puts the new subscription on the cached shop at once (the card never
+ * blanks), then refreshes the shops list (plan column) and the plans list
+ * (shops-on-plan counts) in the background.
+ */
+function useStoreSubscription(id: string) {
+  const queryClient = useQueryClient();
+  return (subscription: SubscriptionView) => {
+    queryClient.setQueryData<TenantDetail>(tenantKeys.detail(id), (tenant) =>
+      tenant ? { ...tenant, subscription } : tenant,
+    );
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: tenantKeys.detail(id) }),
+      queryClient.invalidateQueries({ queryKey: tenantKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: planKeys.lists() }),
+    ]);
+  };
+}
+
+/** `POST /admin/tenants/:id/subscription`. */
+export function useAssignSubscription(id: string) {
+  const store = useStoreSubscription(id);
+  return useMutation({
+    mutationFn: (input: AssignSubscriptionInput) =>
+      assignSubscription(id, input),
+    onSuccess: store,
+  });
+}
+
+/** `PATCH /admin/tenants/:id/subscription`. */
+export function useExtendSubscription(id: string) {
+  const store = useStoreSubscription(id);
+  return useMutation({
+    mutationFn: (input: ExtendSubscriptionInput) =>
+      extendSubscription(id, input),
+    onSuccess: store,
   });
 }

@@ -16,7 +16,6 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatRelative } from "@/lib/format";
 import { shopRoutes } from "@/lib/routes";
-import { cn } from "@/lib/utils";
 import { useTenant } from "../hooks";
 import { shopDetailText as t } from "../text";
 import type { TenantDetail } from "../types";
@@ -24,70 +23,8 @@ import { ShopAvatar } from "./shop-avatar";
 import { ShopLoadError, ShopPageSkeleton } from "./shop-state";
 import { StatusAction } from "./status-action";
 import { StatusBadge } from "./status-badge";
-
-/** A titled card; its heading names the region for screen readers. */
-export function DetailCard({
-  title,
-  children,
-  className,
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  const id = `section-${title.toLowerCase().replace(/\s+/g, "-")}`;
-  return (
-    <section
-      aria-labelledby={id}
-      className={cn(
-        "bg-card text-card-foreground rounded-card shadow-panel flex flex-col gap-4 border p-5 sm:p-6",
-        className,
-      )}
-    >
-      <h2 id={id} className="font-heading text-base font-bold">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-/** One label/value pair; `stacked` puts the label above (narrow cards). */
-export function DetailItem({
-  label,
-  children,
-  ltr,
-  stacked,
-}: {
-  label: string;
-  children: ReactNode;
-  ltr?: boolean;
-  stacked?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-0.5",
-        !stacked && "sm:flex-row sm:items-baseline sm:gap-4",
-      )}
-    >
-      <dt
-        className={cn(
-          "text-muted-foreground flex-none text-sm",
-          !stacked && "sm:w-32",
-        )}
-      >
-        {label}
-      </dt>
-      <dd
-        className="min-w-0 text-[15px] font-medium break-words"
-        dir={ltr ? "ltr" : undefined}
-      >
-        {children}
-      </dd>
-    </div>
-  );
-}
+import { DetailCard, DetailItem } from "./detail-card";
+import { SubscriptionCard } from "./subscription-card";
 
 const orNone = (value: string | null | undefined) => value || t.none;
 
@@ -285,6 +222,7 @@ export function ShopDetail({ id }: { id: string }) {
           <ShopInfo tenant={tenant} />
         </div>
         <aside className="grid min-w-0 gap-6 md:grid-cols-2 xl:grid-cols-1">
+          <SubscriptionCard tenant={tenant} />
           <StatusCard tenant={tenant} />
           <OwnerInfo tenant={tenant} />
         </aside>

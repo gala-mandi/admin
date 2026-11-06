@@ -8,12 +8,22 @@ import {
   DataTableRowActions,
 } from "@/components/data-table";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { formatDate, formatRelative } from "@/lib/format";
+import { formatDate, formatDay, formatRelative } from "@/lib/format";
 import { shopRoutes } from "@/lib/routes";
-import { cityChartMeta, statusChartMeta } from "../chart-meta";
-import { shopsListText as t, tenantStatusText } from "../text";
+import {
+  cityChartMeta,
+  planStateChartMeta,
+  statusChartMeta,
+} from "../chart-meta";
+import {
+  accessStateText,
+  shopsListText as t,
+  subscriptionText,
+  tenantStatusText,
+} from "../text";
 import type { TenantSummary } from "../types";
 import { ShopAvatar } from "./shop-avatar";
+import { AccessStateBadge } from "./access-state-badge";
 import { StatusBadge } from "./status-badge";
 
 const col = dataTableColumnHelper<TenantSummary>();
@@ -103,6 +113,44 @@ export const shopColumns: DataTableColumn<TenantSummary>[] = col.columns([
       chart: statusChartMeta,
     },
     cell: ({ getValue }) => <StatusBadge status={getValue()} />,
+  }),
+  col.accessor((row) => row.subscription ?? null, {
+    id: "plan",
+    header: t.columns.plan,
+    enableSorting: false,
+    meta: {
+      label: t.columns.plan,
+      className: tabletUp,
+      exportValue: (row: TenantSummary) =>
+        row.subscription
+          ? t.planExport(
+              row.subscription.planName,
+              accessStateText[row.subscription.state],
+              formatDay(row.subscription.endsOn),
+            )
+          : t.noPlan,
+      chart: planStateChartMeta,
+    },
+    cell: ({ getValue }) => {
+      const sub = getValue();
+      if (!sub)
+        return <span className="text-muted-foreground">{t.noPlan}</span>;
+      return (
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <span className="flex items-center gap-2">
+            <span className="max-w-32 truncate font-medium">
+              {sub.planName}
+            </span>
+            <AccessStateBadge state={sub.state} />
+          </span>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {sub.state === "active"
+              ? subscriptionText.daysLeftShort(sub.daysLeft)
+              : formatDay(sub.endsOn)}
+          </span>
+        </div>
+      );
+    },
   }),
   col.accessor("userCount", {
     header: t.columns.users,

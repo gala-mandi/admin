@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { normalizePhone } from "@/features/auth/schemas";
-import { shopFormText } from "./text";
-import type { CreateTenantInput, UpdateTenantInput } from "./types";
+import { shopFormText, subscriptionDialogText } from "./text";
+import type {
+  AssignSubscriptionInput,
+  CreateTenantInput,
+  UpdateTenantInput,
+} from "./types";
 
 const e = shopFormText.errors;
 
@@ -94,5 +98,57 @@ export function toUpdateInput(values: ShopFieldsValues): UpdateTenantInput {
     address: orNull(values.address),
     phone: values.phone,
     email: orNull(values.email),
+  };
+}
+
+const sub = subscriptionDialogText.errors;
+const day = z
+  .string()
+  .trim()
+  .min(1, sub.dateRequired)
+  .regex(/^\d{4}-\d{2}-\d{2}$/, sub.dateInvalid);
+
+/** Extend: a new end date after the current one, not before today. */
+export function extendSubscriptionSchema(currentEndsOn: string, today: string) {
+  return z.object({
+    endsOn: day
+      .refine((v) => v > currentEndsOn, sub.endAfterCurrent)
+      .refine((v) => v >= today, sub.endNotPast),
+  });
+}
+export type ExtendSubscriptionValues = z.infer<
+  ReturnType<typeof extendSubscriptionSchema>
+>;
+
+/** Assign: plan, start and end dates (end not before today) and grace days. */
+export function assignSubscriptionSchema(today: string) {
+  return z
+    .object({
+      planId: z.string().min(1, sub.planRequired),
+      startsOn: day,
+      endsOn: day.refine((v) => v >= today, sub.endNotPast),
+      graceDays: z
+        .string()
+        .trim()
+        .regex(/^\d{1,2}$/, sub.graceInvalid)
+        .refine((v) => Number(v) <= 90, sub.graceInvalid),
+    })
+    .refine((v) => v.endsOn >= v.startsOn, {
+      path: ["endsOn"],
+      message: sub.endAfterStart,
+    });
+}
+export type AssignSubscriptionValues = z.infer<
+  ReturnType<typeof assignSubscriptionSchema>
+>;
+
+export function toAssignInput(
+  values: AssignSubscriptionValues,
+): AssignSubscriptionInput {
+  return {
+    planId: values.planId,
+    startsOn: values.startsOn,
+    endsOn: values.endsOn,
+    graceDays: Number(values.graceDays),
   };
 }

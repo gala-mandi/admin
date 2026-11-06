@@ -67,3 +67,62 @@ const countFormat = new Intl.NumberFormat("en-PK");
 export function formatCount(n: number): string {
   return countFormat.format(n);
 }
+
+/**
+ * Rupees as the server sends them (a decimal string, e.g. `"2500.00"`) →
+ * `Rs 2,500.00`. String work only: no float ever touches the amount; more
+ * than 2 decimals are cut, never rounded. "" for anything else.
+ */
+export function formatRs(value: string | null | undefined): string {
+  const match = /^(-?)(\d+)(?:\.(\d*))?$/.exec((value ?? "").trim());
+  if (!match) return "";
+  const [, sign, rawInt, rawDec = ""] = match;
+  const int = rawInt.replace(/^0+(?=\d)/, "");
+  const dec = rawDec.padEnd(2, "0").slice(0, 2);
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const negative = sign === "-" && /[1-9]/.test(int + dec);
+  return `${negative ? "-" : ""}Rs ${grouped}.${dec}`;
+}
+
+// en-CA formats a date as YYYY-MM-DD.
+const karachiDayFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: APP_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Today in Pakistan as `YYYY-MM-DD` (00:30 PKT is already the new day). */
+export function karachiToday(now: Date = new Date()): string {
+  return karachiDayFormat.format(now);
+}
+
+/** `('2026-11-28', 7)` → `'2026-12-05'`; calendar days, no time zone. */
+export function addDays(day: string, days: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** `('2026-01-31', 1)` → `'2026-02-28'`: same day next month, or its last day. */
+export function addMonths(day: string, months: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const last = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 1 + months, Math.min(d, last)))
+    .toISOString()
+    .slice(0, 10);
+}
+
+const dayFormat = new Intl.DateTimeFormat("en-PK", {
+  timeZone: "UTC",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+/** A calendar day `2026-11-20` → `20 Nov 2026` (no time-zone shift). */
+export function formatDay(day: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (!match) return "";
+  const [, y, m, d] = match.map(Number);
+  return dayFormat.format(new Date(Date.UTC(y, m - 1, d)));
+}

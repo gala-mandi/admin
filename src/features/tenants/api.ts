@@ -1,6 +1,9 @@
 import { api } from "@/lib/api";
 import type {
+  AssignSubscriptionInput,
   CreateTenantInput,
+  ExtendSubscriptionInput,
+  SubscriptionView,
   CreateTenantResult,
   TenantDetail,
   TenantList,
@@ -49,6 +52,30 @@ export async function suspendTenant(id: string): Promise<TenantDetail> {
 
 export async function activateTenant(id: string): Promise<TenantDetail> {
   const { data } = await api.post<TenantDetail>(`${one(id)}/activate`);
+  return data;
+}
+
+/** Puts the shop on a plan for a period (its running plan is replaced). */
+export async function assignSubscription(
+  id: string,
+  input: AssignSubscriptionInput,
+): Promise<SubscriptionView> {
+  const { data } = await api.post<SubscriptionView>(
+    `${one(id)}/subscription`,
+    input,
+  );
+  return data;
+}
+
+/** New end date for the shop's current plan; full access returns at once. */
+export async function extendSubscription(
+  id: string,
+  input: ExtendSubscriptionInput,
+): Promise<SubscriptionView> {
+  const { data } = await api.patch<SubscriptionView>(
+    `${one(id)}/subscription`,
+    input,
+  );
   return data;
 }
 
