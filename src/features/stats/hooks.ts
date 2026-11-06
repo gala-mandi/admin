@@ -12,6 +12,11 @@ import type { InactiveShopsParams } from "./types";
 export const NEW_SHOPS_MONTHS = 12;
 /** Rows in the recent activity feed. */
 export const ACTIVITY_LIMIT = 20;
+/**
+ * Changes read for the activity charts (the endpoint's maximum). The feed
+ * shows the newest `ACTIVITY_LIMIT` of the same response: one request.
+ */
+export const ACTIVITY_ANALYTICS_LIMIT = 100;
 /** Rows per page of the inactive shops table. */
 export const INACTIVE_SHOPS_PAGE_SIZE = 10;
 

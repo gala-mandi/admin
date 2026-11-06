@@ -51,3 +51,43 @@ export async function activateTenant(id: string): Promise<TenantDetail> {
   const { data } = await api.post<TenantDetail>(`${one(id)}/activate`);
   return data;
 }
+
+/** Rows per request when reading every shop (the server's maximum). */
+export const ALL_TENANTS_PAGE_SIZE = 100;
+/** Stop after this many pages (10 × 100 shops) to keep the load bounded. */
+export const ALL_TENANTS_MAX_PAGES = 10;
+
+export interface AllTenants {
+  rows: TenantList["data"];
+  /** Shops on the server that match. */
+  total: number;
+  /** More shops match than were read (`ALL_TENANTS_MAX_PAGES` reached). */
+  truncated: boolean;
+}
+
+/**
+ * Every shop that matches `params`, read page by page (one request at a time
+ * so the server isn't hit with a burst). For charts over a whole list.
+ */
+export async function listAllTenants(
+  params: Omit<TenantListParams, "page" | "limit">,
+  signal?: AbortSignal,
+): Promise<AllTenants> {
+  const limit = ALL_TENANTS_PAGE_SIZE;
+  const first = await listTenants({ ...params, page: 1, limit }, signal);
+  const pages = Math.min(
+    Math.ceil(first.meta.total / limit),
+    ALL_TENANTS_MAX_PAGES,
+  );
+  const rows = [...first.data];
+  for (let page = 2; page <= pages; page++) {
+    const next = await listTenants({ ...params, page, limit }, signal);
+    rows.push(...next.data);
+    if (next.data.length < limit) break;
+  }
+  return {
+    rows,
+    total: first.meta.total,
+    truncated: first.meta.total > rows.length,
+  };
+}

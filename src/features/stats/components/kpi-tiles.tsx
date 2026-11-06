@@ -23,6 +23,8 @@ interface Tile {
   key: TileKey;
   icon: LucideIcon;
   chip: string;
+  /** Soft glow in the tile's corner, same hue as the chip. */
+  glow: string;
   value: (s: PlatformStats) => number;
   hint: (s: PlatformStats) => string;
 }
@@ -34,7 +36,8 @@ const tiles: readonly Tile[] = [
   {
     key: "totalShops",
     icon: Store,
-    chip: "bg-primary text-primary-foreground",
+    chip: "bg-primary text-primary-foreground shadow-button",
+    glow: "bg-primary/15",
     value: (s) => s.shops.total,
     hint: (s) => t.cancelledHint(formatCount(s.shops.cancelled)),
   },
@@ -42,6 +45,7 @@ const tiles: readonly Tile[] = [
     key: "active",
     icon: CircleCheck,
     chip: "bg-success/10 text-success",
+    glow: "bg-success/10",
     value: (s) => s.shops.active,
     hint: (s) => share(s.shops.active, s),
   },
@@ -49,6 +53,7 @@ const tiles: readonly Tile[] = [
     key: "trial",
     icon: Hourglass,
     chip: "bg-secondary text-secondary-foreground",
+    glow: "bg-chart-1/10",
     value: (s) => s.shops.trial,
     hint: (s) => share(s.shops.trial, s),
   },
@@ -56,6 +61,7 @@ const tiles: readonly Tile[] = [
     key: "suspended",
     icon: Ban,
     chip: "bg-destructive/10 text-destructive",
+    glow: "bg-destructive/10",
     value: (s) => s.shops.suspended,
     hint: (s) => share(s.shops.suspended, s),
   },
@@ -63,6 +69,7 @@ const tiles: readonly Tile[] = [
     key: "totalUsers",
     icon: Users,
     chip: "bg-secondary text-secondary-foreground",
+    glow: "bg-chart-7/10",
     value: (s) => s.users.total,
     hint: (s) => t.activeUsersHint(formatCount(s.users.active)),
   },
@@ -93,15 +100,22 @@ export function KpiTiles({ className }: { className?: string }) {
   return (
     <section aria-label={t.label} className={className}>
       <dl className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-        {tiles.map(({ key, icon: Icon, chip, value, hint }) => (
+        {tiles.map(({ key, icon: Icon, chip, glow, value, hint }) => (
           <div
             key={key}
             data-tile={key}
             className={cn(
-              "bg-card text-card-foreground rounded-card shadow-panel flex min-w-0 flex-col gap-3 border p-4 sm:p-5",
+              "bg-card text-card-foreground rounded-card shadow-panel relative isolate flex min-w-0 flex-col gap-3 overflow-hidden border p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-5",
               key === "totalShops" && "col-span-2 lg:col-span-1",
             )}
           >
+            <span
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute -end-10 -top-10 -z-10 size-32 rounded-full blur-2xl",
+                glow,
+              )}
+            />
             <dt className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground truncate text-sm font-semibold">
                 {t[key]}

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { InternalAxiosRequestConfig } from "axios";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { api } from "@/lib/api";
@@ -11,6 +17,8 @@ import {
   sessionFor,
   superAdmin,
 } from "@/test/fake-api";
+import { tenantList, tenantSummary } from "@/features/tenants/test-data";
+import { liveCharts, seriesTypes } from "@/test/echarts-mock";
 import { TestProviders } from "@/test/render-panel";
 import {
   activityFeed,
@@ -26,7 +34,7 @@ const defaultAdapter = api.defaults.adapter;
 
 type Replies = Partial<
   Record<
-    "summary" | "new-shops" | "activity" | "inactive-shops",
+    "summary" | "new-shops" | "activity" | "inactive-shops" | "tenants",
     (config: InternalAxiosRequestConfig) => ReturnType<typeof ok> | Error
   >
 >;
@@ -36,12 +44,27 @@ const defaults: Required<Replies> = {
   "new-shops": (c) => ok(c, newShops()),
   activity: (c) => ok(c, activityFeed([activityItem()])),
   "inactive-shops": (c) => ok(c, inactivePage([inactiveShop()])),
+  tenants: (c) =>
+    ok(
+      c,
+      tenantList(
+        [
+          tenantSummary(),
+          tenantSummary({ id: "t2", name: "Bismillah Grain", city: "Sahiwal" }),
+          tenantSummary({ id: "t3", name: "Chak 5 Arhat", userCount: 7 }),
+        ],
+        { limit: 100 },
+      ),
+    ),
 };
 
 function renderDashboard(replies: Replies = {}) {
   const fake = fakeAdapter(async (config) => {
-    const key = (config.url?.replace(/^\/admin\/stats\/?/, "") ||
-      "summary") as keyof Replies;
+    const key = (
+      config.url?.startsWith("/admin/tenants")
+        ? "tenants"
+        : config.url?.replace(/^\/admin\/stats\/?/, "") || "summary"
+    ) as keyof Replies;
     const reply = (replies[key] ?? defaults[key])(config);
     if (reply instanceof Error) throw reply;
     return reply;
@@ -82,7 +105,109 @@ describe("PlatformDashboard", () => {
       "/admin/stats/activity",
       "/admin/stats/inactive-shops",
       "/admin/stats/new-shops",
+      "/admin/tenants",
     ]);
+  });
+
+  it("asks for the last 100 changes once, for the feed and the activity charts", async () => {
+    const asked: unknown[] = [];
+    let tenantsAsked: unknown;
+    const fake = renderDashboard({
+      activity: (c) => {
+        asked.push(c.params);
+        return defaults.activity(c);
+      },
+      tenants: (c) => {
+        tenantsAsked = c.params;
+        return defaults.tenants(c);
+      },
+    });
+    await screen.findByRole("list", { name: "Recent activity" });
+    await waitFor(() => expect(tenantsAsked).toBeDefined());
+    expect(
+      fake.calls.filter((c) => c.url === "/admin/stats/activity"),
+    ).toHaveLength(1);
+    expect(asked).toEqual([{ limit: 100 }]);
+    expect(tenantsAsked).toEqual({ page: 1, limit: 100 });
+  });
+
+  describe("analytics charts", () => {
+    it("draws every chart with its default type", async () => {
+      renderDashboard();
+
+      const expected: Record<string, string> = {
+        "new-shops-chart": "area",
+        "shops-by-status-chart": "donut",
+        "shops-by-city-chart": "horizontalBar",
+        "users-per-shop-chart": "horizontalBar",
+        // One kind of action: nothing to stack, so the first time-series type.
+        "activity-by-day-chart": "line",
+        "activity-by-action-chart": "bar",
+      };
+      for (const [testId, type] of Object.entries(expected)) {
+        expect(await screen.findByTestId(testId)).toHaveAttribute(
+          "data-chart-type",
+          type,
+        );
+      }
+      await waitFor(() => expect(liveCharts()).toHaveLength(6));
+    });
+
+    it("stacks the activity per day by action", async () => {
+      renderDashboard({
+        activity: (c) =>
+          ok(
+            c,
+            activityFeed([
+              activityItem({ id: 1, action: "create" }),
+              activityItem({ id: 2, action: "update" }),
+              activityItem({ id: 3, action: "update" }),
+            ]),
+          ),
+      });
+      const chart = await screen.findByTestId("activity-by-day-chart");
+      expect(chart).toHaveAttribute("data-chart-type", "stackedArea");
+      const legend = within(chart.closest("section")!).getByRole("list", {
+        name: "Show or hide",
+      });
+      expect(
+        within(legend)
+          .getAllByRole("button")
+          .map((b) => b.textContent),
+      ).toEqual(["Updated", "Created"]);
+    });
+
+    it("counts shops by city and users per shop from every shop", async () => {
+      renderDashboard();
+      const city = await screen.findByTestId("shops-by-city-chart");
+      expect(city).toHaveAccessibleName(/Highest: Okara, 2/);
+      const cityTable = screen.getByRole("table", { name: "Shops by city" });
+      expect(within(cityTable).getAllByRole("row")).toHaveLength(3);
+
+      const users = screen.getByTestId("users-per-shop-chart");
+      expect(users).toHaveAccessibleName(/Highest: Chak 5 Arhat, 7/);
+      expect(screen.getAllByText("Based on all 3 shops.")).toHaveLength(2);
+    });
+
+    it("switches a chart's type from its menu and draws the new type", async () => {
+      renderDashboard();
+      const status = await screen.findByTestId("shops-by-status-chart");
+      await waitFor(() => expect(liveCharts().length).toBeGreaterThan(0));
+
+      fireEvent.pointerDown(
+        screen.getByRole("button", { name: "Chart type: Donut" }),
+        { button: 0, ctrlKey: false },
+      );
+      fireEvent.click(
+        await screen.findByRole("menuitemradio", { name: "Bar" }),
+      );
+
+      await waitFor(() =>
+        expect(status).toHaveAttribute("data-chart-type", "bar"),
+      );
+      const drawn = liveCharts().find((c) => status.contains(c.element));
+      await waitFor(() => expect(seriesTypes(drawn)).toEqual(["bar"]));
+    });
   });
 
   describe("new shops chart", () => {
