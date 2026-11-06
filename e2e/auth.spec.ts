@@ -99,7 +99,7 @@ test.describe("admin auth", () => {
     await signIn(page);
 
     await expect(page).toHaveURL("/dashboard");
-    await expect(page.getByText("Welcome, Platform Admin")).toBeVisible();
+    await expect(page.getByTestId("user-name")).toHaveText("Platform Admin");
     expect(refreshes).toHaveLength(1);
     expect(meCalls.map(bearer)).toEqual(["expired-token", "fresh-token"]);
   });
