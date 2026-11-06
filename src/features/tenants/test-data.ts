@@ -1,4 +1,34 @@
-import type { TenantDetail, TenantList, TenantSummary } from "./types";
+import type {
+  SubscriptionView,
+  TenantDetail,
+  TenantList,
+  TenantSummary,
+} from "./types";
+
+export function subscriptionView(
+  overrides: Partial<SubscriptionView> = {},
+): SubscriptionView {
+  return {
+    id: "s1",
+    plan: {
+      id: "p-basic",
+      name: "Basic",
+      maxUsers: 5,
+      maxBranches: 1,
+      priceMonthly: "2500.00",
+    },
+    startsOn: "2026-11-01",
+    endsOn: "2026-12-01",
+    graceDays: 7,
+    graceEndsOn: "2026-12-08",
+    status: "active",
+    state: "active",
+    daysLeft: 25,
+    graceDaysLeft: 32,
+    usersUsed: 3,
+    ...overrides,
+  };
+}
 
 export function tenantSummary(
   overrides: Partial<TenantSummary> = {},
@@ -13,6 +43,12 @@ export function tenantSummary(
     status: "active",
     userCount: 3,
     createdAt: "2026-10-26T20:30:00Z",
+    subscription: {
+      planName: "Basic",
+      endsOn: "2026-12-01",
+      state: "active",
+      daysLeft: 25,
+    },
     ...overrides,
   };
 }
@@ -34,6 +70,7 @@ export function tenantDetail(
       isActive: true,
       mustChangePassword: true,
     },
+    subscription: subscriptionView(),
     ...overrides,
   };
 }

@@ -1,5 +1,5 @@
-import { tenantStatusText } from "./text";
-import type { TenantStatus } from "./types";
+import { accessStateText, tenantStatusText } from "./text";
+import type { AccessState, TenantStatus } from "./types";
 
 /** Chart-view hints shared by the shop tables (`meta.chart`). */
 
@@ -23,4 +23,18 @@ export const statusChartMeta = {
 export const cityChartMeta = {
   group: "category",
   value: (row: { city: string | null }) => row.city?.trim() || null,
+} as const;
+
+/** Chart view: group shops by their plan's state today (no plan = "none"). */
+export const planStateChartMeta = {
+  group: "category",
+  value: (row: { subscription?: { state: AccessState } | null }) =>
+    row.subscription?.state ?? null,
+  groupLabel: (key: string) => accessStateText[key as AccessState] ?? key,
+  order: ["active", "grace", "read_only"] as const,
+  colors: {
+    active: "--success",
+    grace: "--notice",
+    read_only: "--destructive",
+  } satisfies Record<AccessState, string>,
 } as const;

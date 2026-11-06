@@ -32,10 +32,15 @@ export const shopsListText = {
     owner: "Owner",
     city: "City",
     status: "Status",
+    plan: "Plan",
     users: "Users",
     created: "Created",
     actions: "Actions",
   },
+  noPlan: "No plan",
+  /** Plan column in the Excel export. */
+  planExport: (plan: string, state: string, endsOn: string) =>
+    `${plan} (${state}, ends ${endsOn})`,
   /** Read before the phone under the owner's name. */
   shopPhone: "Shop phone",
   noValue: "—",
@@ -222,5 +227,94 @@ export const shopPagesText = {
     updated: "Last updated",
     slug: "Shop ID",
     note: "Suspend or activate the shop from its details page.",
+  },
+} as const;
+
+/** Access state words (the plan's state today, Pakistan date). */
+export const accessStateText = {
+  active: "Active",
+  grace: "In grace",
+  read_only: "Read-only",
+} as const;
+
+export const subscriptionText = {
+  section: "Plan",
+  none: "This shop has no plan: its users can only view and print.",
+  noneAction: "Assign a plan",
+  manage: "Assign / extend plan",
+  ends: "Ends",
+  started: "Started",
+  graceEnds: "Grace ends",
+  users: "Users",
+  usersOf: (used: number, max: number) => `${used} of ${max}`,
+  usersHint: "Active users and invites not yet accepted.",
+  price: "Price",
+  perMonth: "/ month",
+  branches: (n: number) =>
+    `Up to ${n} ${n === 1 ? "branch" : "branches"} (not enforced yet)`,
+  free: "Free",
+  stateHint: {
+    active: (days: number) =>
+      days === 0
+        ? "Last day of the plan today."
+        : `${days} ${days === 1 ? "day" : "days"} left.`,
+    grace: (days: number) =>
+      `The plan has ended; full access for ${days} more ${days === 1 ? "day" : "days"} of grace, then read-only.`,
+    read_only:
+      "The plan and its grace period have ended: users can view and print, but can’t add or change anything.",
+  },
+  daysLeftShort: (days: number) =>
+    days === 0 ? "Last day" : `${days} ${days === 1 ? "day" : "days"} left`,
+} as const;
+
+export const subscriptionDialogText = {
+  title: "Assign or extend plan",
+  description: (shop: string) =>
+    `Changes apply to ${shop} straight away: a read-only shop gets full access back the moment you save.`,
+  tabs: { extend: "Extend", assign: "Change plan" },
+  current: (plan: string, endsOn: string) => `${plan}, ends ${endsOn}`,
+  extendHint: "Keeps the plan and moves its end date later.",
+  quick: "Quick pick",
+  quickOptions: [
+    { months: 1, label: "+1 month" },
+    { months: 3, label: "+3 months" },
+    { months: 6, label: "+6 months" },
+    { months: 12, label: "+1 year" },
+  ],
+  newEndsOn: "New end date",
+  endsOnHint: (date: string) => `Pakistan date. Today is ${date}.`,
+  assignHint:
+    "Puts the shop on a plan from a start date; its running plan is replaced.",
+  plan: "Plan",
+  planPlaceholder: "Pick a plan",
+  planOption: (name: string, users: number, price: string) =>
+    `${name} · ${users} users · ${price}`,
+  plansLoading: "Loading plans…",
+  plansError: "Couldn’t load the plans. Close and try again.",
+  startsOn: "Start date",
+  endsOn: "End date",
+  graceDays: "Grace days",
+  graceHint: "Full access after the end date, then read-only.",
+  summary: (endsOn: string, graceEndsOn: string) =>
+    `Full access until ${endsOn}; read-only after ${graceEndsOn}.`,
+  cancel: "Cancel",
+  extend: "Extend plan",
+  extending: "Extending…",
+  assign: "Assign plan",
+  assigning: "Assigning…",
+  extended: (shop: string, endsOn: string) =>
+    `${shop}’s plan now ends on ${endsOn}`,
+  assigned: (shop: string, plan: string) => `${shop} is now on ${plan}`,
+  errors: {
+    planRequired: "Pick a plan",
+    dateRequired: "Pick a date",
+    dateInvalid: "Enter a real date",
+    endAfterCurrent: "Pick a date after the current end date",
+    endNotPast: "The end date must be today or later",
+    endAfterStart: "The end date must be on or after the start date",
+    graceInvalid: "Enter 0 to 90 days",
+    planInactive: "This plan is turned off. Pick another one.",
+    network: "No connection to the server. Check your internet and try again.",
+    unknown: "Something went wrong. Try again.",
   },
 } as const;
