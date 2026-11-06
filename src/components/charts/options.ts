@@ -187,10 +187,17 @@ function axes(input: BuildOptionInput, horizontal: boolean, gap: boolean) {
     axisLabel: {
       color: theme.muted,
       fontSize: 11,
-      hideOverlap: true,
       margin: 12,
-      width: horizontal ? 110 : undefined,
-      overflow: horizontal ? "truncate" : undefined,
+      // Time series drop labels that would overlap; categories keep every
+      // label, truncated (and tilted when there are many on the x axis).
+      ...(data.shape === "timeSeries"
+        ? { hideOverlap: true }
+        : {
+            interval: 0,
+            overflow: "truncate",
+            width: horizontal ? 110 : 72,
+            rotate: !horizontal && data.categories.length > 8 ? 35 : 0,
+          }),
     },
   };
   const valueAxis = {
@@ -490,22 +497,64 @@ function pie(input: BuildOptionInput, kind: PieKind): EChartsCoreOption {
           borderWidth: 2,
           borderRadius: kind === "pie" ? 4 : 8,
         },
-        label: {
-          show: true,
-          color: theme.muted,
-          fontSize: 11,
-          formatter: ({ dataIndex }: { dataIndex: number }) =>
-            slices[dataIndex]?.label ?? "",
-        },
+        // A donut names its slices in the legend and shows the total in its
+        // hole; pie and rose label the slices that have a value.
+        label:
+          kind === "donut"
+            ? { show: false }
+            : {
+                show: true,
+                color: theme.muted,
+                fontSize: 11,
+                formatter: ({ dataIndex }: { dataIndex: number }) =>
+                  slices[dataIndex]?.label ?? "",
+              },
         labelLine: { lineStyle: { color: theme.border }, length: 8 },
         emphasis: { scale: true, scaleSize: 6 },
         data: slices.map((s) => ({
           name: s.label,
           value: s.value,
           itemStyle: { color: s.color },
+          label: s.value > 0 ? undefined : { show: false },
+          labelLine: s.value > 0 ? undefined : { show: false },
         })),
       },
+      ...(kind === "donut" ? [donutCenter(input, slices)] : []),
     ],
+  };
+}
+
+/** The total in the hole of a donut (a silent, empty pie with a label). */
+function donutCenter(input: BuildOptionInput, slices: Slice[]) {
+  const { theme, formatValue } = input;
+  const total = slices.reduce((sum, s) => sum + s.value, 0);
+  return {
+    id: "center",
+    type: "pie",
+    radius: ["0%", "0%"],
+    center: ["50%", "50%"],
+    silent: true,
+    tooltip: { show: false },
+    animation: false,
+    label: {
+      show: true,
+      position: "center",
+      formatter: () =>
+        `{value|${formatValue(total)}}\n{name|${input.data.series[0]?.name ?? chartText.total}}`,
+      rich: {
+        value: {
+          color: theme.text,
+          fontSize: 24,
+          fontWeight: 800,
+          lineHeight: 30,
+          fontFamily: theme.fontFamily,
+        },
+        name: { color: theme.muted, fontSize: 12, lineHeight: 16 },
+      },
+    },
+    labelLine: { show: false },
+    itemStyle: { color: "transparent" },
+    data: [{ value: 1, name: "" }],
   };
 }
 

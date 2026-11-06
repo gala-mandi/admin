@@ -76,7 +76,17 @@ describe("option builders", () => {
     ["treemap", "treemap"],
     ["funnel", "funnel"],
   ] as const)("builds a %s chart as ECharts %s series", (type, series) => {
-    expect(build(cities, type).series.map((s) => s.type)).toEqual([series]);
+    expect(build(cities, type).series[0]!.type).toBe(series);
+  });
+
+  it("puts the total in the hole of a donut", () => {
+    const donut = build(cities, "donut").series as unknown as {
+      id: string;
+      label: { formatter: () => string };
+    }[];
+    expect(donut.map((s) => s.id)).toEqual(["main", "center"]);
+    expect(donut[1]!.label.formatter()).toBe("{value|9}\n{name|Shops}");
+    expect(build(cities, "pie").series).toHaveLength(1);
   });
 
   it("swaps the axes for a horizontal bar", () => {

@@ -34,6 +34,7 @@ export function NewShopsChart({ className }: { className?: string }) {
       errorText={t.error}
       onRetry={() => void query.refetch()}
       emptyText={t.empty(NEW_SHOPS_MONTHS)}
+      height={340}
     />
   );
 }
