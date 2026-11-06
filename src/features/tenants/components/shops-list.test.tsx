@@ -140,15 +140,18 @@ describe("ShopsList", { timeout: 15_000 }, () => {
 
     expect(cells[2]).toHaveTextContent("Okara");
     expect(cells[3]).toHaveTextContent("Active");
-    expect(cells[4]).toHaveTextContent("3");
-    expect(cells[5]).toHaveTextContent("27 Oct 2026");
-    expect(cells[5]!.querySelector("time")).toHaveAttribute(
+    // Plan, its state today and the days left.
+    expect(cells[4]).toHaveTextContent("BasicActive25 days left");
+    expect(cells[5]).toHaveTextContent("3");
+    expect(cells[6]).toHaveTextContent("27 Oct 2026");
+    expect(cells[6]!.querySelector("time")).toHaveAttribute(
       "dateTime",
       "2026-10-26T20:30:00Z",
     );
     // Phones show shop, status and actions; Owner from `md`, the rest from `lg`.
     expect(cells[1]).toHaveClass("hidden", "md:table-cell");
-    for (const i of [2, 4, 5]) {
+    expect(cells[4]).toHaveClass("hidden", "md:table-cell");
+    for (const i of [2, 5, 6]) {
       expect(cells[i]).toHaveClass("hidden", "lg:table-cell");
     }
     expect(cells[0]).not.toHaveClass("hidden");
