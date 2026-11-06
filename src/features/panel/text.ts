@@ -63,23 +63,6 @@ export const panelText = {
     title: "Nothing here yet",
     body: comingSoon,
   },
-  dashboard: {
-    welcome: (name: string) => `Welcome, ${name}`,
-    body: "Shops, plans and platform activity will show here.",
-    loading: "Loading…",
-    error: "Couldn’t load your account. Check your internet and try again.",
-    retry: "Try again",
-    openShops: "Open shops",
-    newShop: "New shop",
-    account: {
-      title: "Your account",
-      role: "Role",
-      email: "Email",
-      phone: "Phone",
-      none: "—",
-    },
-    sectionsTitle: "Go to",
-  },
   loading: "Loading page…",
   notFound: {
     metaTitle: "Page not found",
