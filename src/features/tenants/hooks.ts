@@ -11,6 +11,7 @@ import {
   activateTenant,
   createTenant,
   getTenant,
+  listAllTenants,
   listTenants,
   suspendTenant,
   updateTenant,
@@ -29,6 +30,9 @@ export const tenantKeys = {
   all: ["tenants"] as const,
   lists: () => [...tenantKeys.all, "list"] as const,
   list: (params: TenantListParams) => [...tenantKeys.lists(), params] as const,
+  /** Every matching shop (all pages), for charts. */
+  everyRow: (params: Omit<TenantListParams, "page" | "limit">) =>
+    [...tenantKeys.lists(), "every-row", params] as const,
   details: () => [...tenantKeys.all, "detail"] as const,
   detail: (id: string) => [...tenantKeys.details(), id] as const,
 };
@@ -47,6 +51,28 @@ export function useTenants(params: TenantListParams) {
     queryFn: ({ signal }) => listTenants(params, signal),
     placeholderData: keepPreviousData,
     retry: retryUnlessClientError,
+  });
+}
+
+/** Charts over every shop: a minute old is fresh enough. */
+const ALL_TENANTS_STALE_TIME = 60_000;
+
+/**
+ * Every shop matching `params` (all pages of `GET /admin/tenants`), for the
+ * charts. Under `tenantKeys.lists()`, so creating or suspending a shop
+ * refreshes it. `enabled: false` until a chart needs it.
+ */
+export function useAllTenants(
+  params: Omit<TenantListParams, "page" | "limit"> = {},
+  { enabled = true }: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: tenantKeys.everyRow(params),
+    queryFn: ({ signal }) => listAllTenants(params, signal),
+    staleTime: ALL_TENANTS_STALE_TIME,
+    placeholderData: keepPreviousData,
+    retry: retryUnlessClientError,
+    enabled,
   });
 }
 

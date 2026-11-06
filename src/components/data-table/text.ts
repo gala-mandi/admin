@@ -52,6 +52,31 @@ export const dataTableText = {
     button: "Columns",
     title: "Show columns",
   },
+  viewMode: {
+    label: "View as",
+    table: "Table",
+    chart: "Chart",
+  },
+  chart: {
+    groupBy: "Group by",
+    measure: "Measure",
+    count: "Number of rows",
+    sum: (label: string) => `Total ${label.toLowerCase()}`,
+    avg: (label: string) => `Average ${label.toLowerCase()}`,
+    byMonth: (label: string) => `${label} (by month)`,
+    byDay: (label: string) => `${label} (by day)`,
+    none: "Not set",
+    title: (measure: string, group: string) =>
+      `${measure} by ${group.toLowerCase()}`,
+    empty: "Nothing to chart for these filters.",
+    basis: {
+      all: (n: string) => `Charting all ${n} matching rows.`,
+      truncated: (n: string, total: string) =>
+        `Charting the first ${n} of ${total} matching rows.`,
+      page: (n: string, total: string) =>
+        `Charting the ${n} rows on this page, of ${total}. Change page to chart others.`,
+    },
+  },
   export: {
     button: "Export to Excel",
     busy: "Exporting…",

@@ -3,6 +3,7 @@
 import { Plus, Search, Store } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
 import {
   DataTable,
   DataTableExport,
@@ -19,11 +20,12 @@ import { panelText } from "@/features/panel/text";
 import { toApiError } from "@/lib/api-error";
 import { toListSearchParams } from "@/lib/list-query";
 import { shopRoutes } from "@/lib/routes";
-import { useTenants } from "../hooks";
+import { useAllTenants, useTenants } from "../hooks";
 import {
   SHOPS_PAGE_SIZE,
   SHOPS_TABLE_ID,
   shopListFilters,
+  shopListView,
   shopSortFields,
 } from "../search-params";
 import { shopsListText as t } from "../text";
@@ -51,9 +53,18 @@ export function ShopsList() {
   const { columnVisibility, onColumnVisibilityChange } =
     useColumnVisibility(SHOPS_TABLE_ID);
 
-  const query = useTenants(toListSearchParams(list.listParams));
+  const [view, setView] = useQueryState("view", shopListView);
+
+  const params = toListSearchParams(list.listParams);
+  const query = useTenants(params);
   const rows = query.data?.data;
   const total = query.data?.meta.total;
+  // The chart view charts every shop matching the search and status, not
+  // only this page; read only while the chart is shown.
+  const everyRow = useAllTenants(
+    { search: params.search, status: params.status },
+    { enabled: view === "chart" },
+  );
 
   if (query.isError && toApiError(query.error).status === 403) {
     return <ForbiddenState />;
@@ -134,6 +145,18 @@ export function ShopsList() {
         isError={query.isError}
         onRetry={() => void query.refetch()}
         onRowClick={(row) => router.push(shopRoutes.detail(row.id))}
+        view={view}
+        onViewChange={(next) => void setView(next)}
+        chartView={{
+          id: SHOPS_TABLE_ID,
+          rows: everyRow.data?.rows,
+          total: everyRow.data?.total,
+          isLoading: everyRow.isPending,
+          isError: everyRow.isError,
+          onRetry: () => void everyRow.refetch(),
+          countLabel: t.chartCount,
+          defaultGroupBy: "status",
+        }}
         empty={
           list.isFiltered ? (
             <EmptyState

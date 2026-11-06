@@ -7,7 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { panelText } from "@/features/panel/text";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { shopRoutes } from "@/lib/routes";
-import { ACTIVITY_LIMIT, useActivity } from "../hooks";
+import {
+  ACTIVITY_ANALYTICS_LIMIT,
+  ACTIVITY_LIMIT,
+  useActivity,
+} from "../hooks";
 import { actionLabel, entityLabel, statsText } from "../text";
 import type { ActivityItem } from "../types";
 
@@ -59,8 +63,9 @@ function Row({ item }: { item: ActivityItem }) {
 
 /** Latest audit log rows across the platform: who did what, where and when. */
 export function ActivityFeed() {
-  const query = useActivity(ACTIVITY_LIMIT);
-  const items = query.data?.data ?? [];
+  // Same request (and cache entry) as the activity charts.
+  const query = useActivity(ACTIVITY_ANALYTICS_LIMIT);
+  const items = (query.data?.data ?? []).slice(0, ACTIVITY_LIMIT);
 
   return (
     <section
@@ -93,7 +98,13 @@ export function ActivityFeed() {
           {t.empty}
         </p>
       ) : (
-        <ol aria-label={t.title} className="divide-border divide-y">
+        <ol
+          aria-label={t.title}
+          // Scrolls inside the card so it sits beside the charts; focusable
+          // so keyboard users can scroll it too.
+          tabIndex={0}
+          className="divide-border focus-visible:ring-ring/50 -me-2 max-h-[26rem] divide-y overflow-y-auto rounded-md pe-2 outline-none focus-visible:ring-3"
+        >
           {items.map((item) => (
             <Row key={item.id} item={item} />
           ))}

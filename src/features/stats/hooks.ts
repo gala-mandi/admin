@@ -12,8 +12,15 @@ import type { InactiveShopsParams } from "./types";
 export const NEW_SHOPS_MONTHS = 12;
 /** Rows in the recent activity feed. */
 export const ACTIVITY_LIMIT = 20;
+/**
+ * Changes read for the activity charts (the endpoint's maximum). The feed
+ * shows the newest `ACTIVITY_LIMIT` of the same response: one request.
+ */
+export const ACTIVITY_ANALYTICS_LIMIT = 100;
 /** Rows per page of the inactive shops table. */
 export const INACTIVE_SHOPS_PAGE_SIZE = 10;
+/** Rows the inactive shops chart reads (the endpoint's maximum, one page). */
+export const INACTIVE_SHOPS_CHART_LIMIT = 100;
 
 /** Platform counts move slowly; a minute old is fresh enough. */
 const STATS_STALE_TIME = 60_000;
@@ -67,12 +74,16 @@ export function useActivity(limit = ACTIVITY_LIMIT) {
 }
 
 /** `GET /admin/stats/inactive-shops`; keeps the page on screen while the next loads. */
-export function useInactiveShops(params: InactiveShopsParams) {
+export function useInactiveShops(
+  params: InactiveShopsParams,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: statsKeys.inactiveShops(params),
     queryFn: ({ signal }) => getInactiveShops(params, signal),
     placeholderData: keepPreviousData,
     staleTime: STATS_STALE_TIME,
     retry: retryUnlessForbidden,
+    enabled,
   });
 }

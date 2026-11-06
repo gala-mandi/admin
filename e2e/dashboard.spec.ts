@@ -2,8 +2,9 @@ import { expect, type Page, test } from "@playwright/test";
 import { API, cors, signedInAsSuperAdmin } from "./mock-api";
 
 /**
- * Platform dashboard on a fake `/admin/stats` API: tiles, new shops chart,
- * activity feed and inactive shops all load; a 403 shows the access page.
+ * Platform dashboard on a fake `/admin/stats` (and `/admin/tenants`) API:
+ * tiles, new shops chart, activity feed and inactive shops all load; a 403
+ * shows the access page. The other charts are in `analytics.spec.ts`.
  */
 
 const stats = {
@@ -90,6 +91,25 @@ async function mockStats(page: Page, summaryStatus = 200) {
       meta: { page: 1, limit: 10, total: 1 },
     },
   }));
+  await mockGet(page, "/admin/tenants", () => ({
+    status: 200,
+    body: {
+      data: [
+        {
+          id: "t1",
+          name: "Demo Mandi",
+          slug: "demo-mandi",
+          city: "Okara",
+          phone: "03000000001",
+          ownerName: "Haji Aslam",
+          status: "active",
+          userCount: 4,
+          createdAt: minutesAgo(60 * 24 * 40),
+        },
+      ],
+      meta: { page: 1, limit: 100, total: 1 },
+    },
+  }));
 }
 
 test("super-admin sees the platform dashboard", async ({ page, context }) => {
@@ -105,8 +125,10 @@ test("super-admin sees the platform dashboard", async ({ page, context }) => {
   await expect(tiles.locator('[data-tile="suspended"]')).toContainText("3");
   await expect(tiles.locator('[data-tile="totalUsers"]')).toContainText("180");
 
-  await expect(page.getByTestId("new-shops-chart")).toBeVisible();
-  await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
+  const newShops = page.getByTestId("new-shops-chart");
+  await expect(newShops).toBeVisible();
+  await expect(newShops).toHaveAttribute("data-chart-type", "area");
+  await expect(newShops.locator("canvas")).toBeVisible();
 
   await expect(
     page.getByRole("list", { name: "Recent activity" }),

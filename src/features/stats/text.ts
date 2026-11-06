@@ -35,6 +35,56 @@ export const statsText = {
     shops: "Shops",
     tooltip: (n: number) => (n === 1 ? "1 shop" : `${n} shops`),
   },
+  analytics: {
+    label: "Analytics",
+    status: {
+      title: "Shops by status",
+      description: "Every shop on the platform, by its current status.",
+      series: "Shops",
+      category: "Status",
+      empty: "No shops yet.",
+    },
+    cities: {
+      title: "Shops by city",
+      description: "Where the shops are. Cities past the top 11 are grouped.",
+      series: "Shops",
+      category: "City",
+      noCity: "No city",
+      empty: "No shops yet.",
+      basis: (read: string, total: string, truncated: boolean) =>
+        truncated
+          ? `Based on the first ${read} of ${total} shops.`
+          : `Based on all ${total} shops.`,
+    },
+    users: {
+      title: "Users per shop",
+      description: (top: number) => `The ${top} shops with the most users.`,
+      series: "Users",
+      category: "Shop",
+      empty: "No shop has users yet.",
+    },
+    actions: {
+      title: "Activity by action",
+      description: (n: number) => `What the last ${n} changes were.`,
+      series: "Changes",
+      category: "Action",
+      empty: "No changes to count yet.",
+      names: {
+        create: "Created",
+        update: "Updated",
+        delete: "Deleted",
+        restore: "Restored",
+        access: "Opened",
+      } as Record<string, string>,
+    },
+    days: {
+      title: "Activity by day",
+      description: (n: number) =>
+        `The last ${n} changes per day (Pakistan time), by action.`,
+      category: "Day",
+      empty: "No changes to show per day yet.",
+    },
+  },
   activity: {
     title: "Recent activity",
     description: "Latest changes across every shop.",
@@ -78,8 +128,17 @@ export const statsText = {
       lastActivity: "Last activity",
     },
     count: (n: string) => (n === "1" ? "1 shop" : `${n} shops`),
+    chartCount: "Shops",
   },
 } as const;
+
+/** "Updated" (a chart label), or the raw action for one this panel doesn't know. */
+export function actionName(action: string): string {
+  return (
+    statsText.analytics.actions.names[action] ??
+    action.charAt(0).toUpperCase() + action.slice(1).replaceAll("_", " ")
+  );
+}
 
 /** "updated", or the raw action for one this panel doesn't know yet. */
 export function actionLabel(action: string): string {

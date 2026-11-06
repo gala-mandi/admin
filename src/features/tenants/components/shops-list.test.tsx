@@ -447,4 +447,53 @@ describe("ShopsList", { timeout: 15_000 }, () => {
 
     expect(await screen.findByText("403")).toBeInTheDocument();
   });
+
+  describe("chart view", () => {
+    it("charts every shop matching the search and status, with the view in the URL", async () => {
+      const shops = [
+        tenantSummary(),
+        tenantSummary({ id: "t2", name: "B", status: "trial" }),
+        tenantSummary({ id: "t3", name: "C", status: "active" }),
+      ];
+      const { onUrlUpdate } = renderList("?q=okara&status=active", (config) => {
+        recordParams(config);
+        return ok(config, tenantList(shops, { limit: 100 }));
+      });
+      await screen.findByRole("table", { name: "Shops" });
+      expect(sentParams.some((p) => p.limit === 100)).toBe(false);
+
+      fireEvent.click(
+        within(screen.getByRole("group", { name: "View as" })).getByRole(
+          "button",
+          { name: "Chart" },
+        ),
+      );
+
+      const chart = await screen.findByTestId("data-table-chart");
+      expect(lastUrl(onUrlUpdate)).toContain("view=chart");
+      await waitFor(() =>
+        expect(sentParams).toContainEqual({
+          page: 1,
+          limit: 100,
+          search: "okara",
+          status: "active",
+        }),
+      );
+      // Grouped by status by default, in the status cards' order.
+      await waitFor(() =>
+        expect(chart).toHaveAccessibleName(
+          "Shops by status. Bar chart. 2 items. Highest: Active, 2. Lowest: Trial, 1. Total: 3.",
+        ),
+      );
+      expect(screen.queryByRole("table", { name: "Shops" })).toBeNull();
+      expect(
+        screen.getByText("Charting all 3 matching rows."),
+      ).toBeInTheDocument();
+    });
+
+    it("opens on the chart from ?view=chart", async () => {
+      renderList("?view=chart");
+      expect(await screen.findByTestId("data-table-chart")).toBeInTheDocument();
+    });
+  });
 });

@@ -8,12 +8,18 @@ import {
   DataTable,
   type DataTableColumn,
   dataTableColumnHelper,
+  type DataTableView,
 } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { cityChartMeta, statusChartMeta } from "@/features/tenants/chart-meta";
 import { StatusBadge } from "@/features/tenants/components/status-badge";
 import { formatCount, formatDate, formatRelative } from "@/lib/format";
 import { shopRoutes } from "@/lib/routes";
-import { INACTIVE_SHOPS_PAGE_SIZE, useInactiveShops } from "../hooks";
+import {
+  INACTIVE_SHOPS_CHART_LIMIT,
+  INACTIVE_SHOPS_PAGE_SIZE,
+  useInactiveShops,
+} from "../hooks";
 import { statsText } from "../text";
 import type { InactiveShop } from "../types";
 
@@ -38,19 +44,23 @@ const columns: DataTableColumn<InactiveShop>[] = col.columns([
   col.accessor("city", {
     header: t.columns.city,
     enableSorting: false,
-    meta: { label: t.columns.city, className: "hidden md:table-cell" },
+    meta: {
+      label: t.columns.city,
+      className: "hidden md:table-cell",
+      chart: cityChartMeta,
+    },
     cell: ({ getValue }) => getValue<string | null>() ?? statsText.none,
   }),
   col.accessor("status", {
     header: t.columns.status,
     enableSorting: false,
-    meta: { label: t.columns.status },
+    meta: { label: t.columns.status, chart: statusChartMeta },
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   }),
   col.accessor("lastActivityAt", {
     header: t.columns.lastActivity,
     enableSorting: false,
-    meta: { label: t.columns.lastActivity },
+    meta: { label: t.columns.lastActivity, chart: { group: "date" } },
     cell: ({ row }) => (
       <time
         dateTime={row.original.lastActivityAt}
@@ -76,6 +86,13 @@ export function InactiveShops() {
     limit: pagination.pageSize,
   });
   const total = query.data?.meta.total;
+  const [view, setView] = useState<DataTableView>("table");
+  // The chart reads up to 100 inactive shops in one request, not just the
+  // 10 on this page; only while it's shown.
+  const chartQuery = useInactiveShops(
+    { page: 1, limit: INACTIVE_SHOPS_CHART_LIMIT },
+    { enabled: view === "chart" },
+  );
 
   return (
     <section
@@ -113,6 +130,18 @@ export function InactiveShops() {
         isFetching={query.isPlaceholderData}
         isError={query.isError}
         onRetry={() => void query.refetch()}
+        view={view}
+        onViewChange={setView}
+        chartView={{
+          id: "inactive-shops",
+          rows: chartQuery.data?.data,
+          total: chartQuery.data?.meta.total,
+          isLoading: chartQuery.isPending,
+          isError: chartQuery.isError,
+          onRetry: () => void chartQuery.refetch(),
+          countLabel: t.chartCount,
+          defaultGroupBy: "lastActivityAt:month",
+        }}
         empty={
           <EmptyState
             icon={CircleCheck}
