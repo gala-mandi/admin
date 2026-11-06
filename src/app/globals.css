@@ -48,6 +48,9 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-8: var(--chart-8);
+  --color-chart-7: var(--chart-7);
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -112,11 +115,21 @@
   --ring: #6d28d9;
   /* Text links and accent text (darker/lighter than --primary per theme) */
   --link: #6d28d9;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Chart palette: categorical slots in fixed order (never cycled), brand
+     violet first. Validated for colour-blind separation on the card surface
+     (adjacent CVD ΔE ≥ 9, normal-vision ΔE ≥ 19); slots 3–5 are under 3:1 on
+     white, so every chart also has labels or the "View data" table. */
+  --chart-1: #6d28d9;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #2a78d6;
+  --chart-8: #e34948;
+  /* Folded tail ("Other") and split lines */
+  --chart-other: #a19cae;
+  --chart-grid: #ece9f2;
   --radius: 0.75rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #1e1b2e;
@@ -188,11 +201,17 @@
   --input: #3a3549;
   --ring: #8b5cf6;
   --link: #c4b5fd;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Same hues stepped for the dark card (all ≥ 3:1, adjacent CVD ΔE ≥ 8.4). */
+  --chart-1: #9f67fa;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+  --chart-7: #3987e5;
+  --chart-8: #e66767;
+  --chart-other: #6b6580;
+  --chart-grid: #2c2839;
   --sidebar: #15121e;
   --sidebar-foreground: #f4f2fa;
   --sidebar-primary: #7c3aed;
