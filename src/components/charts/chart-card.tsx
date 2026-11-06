@@ -182,8 +182,12 @@ export function ChartCard({
   }, []);
 
   const types = data ? chartTypesFor(data) : [];
+  // The stored choice if it fits this data, else the default, else the
+  // shape's first type.
   const type: ChartType = data
-    ? resolveChartType(data, stored ?? defaultType)
+    ? stored && types.includes(stored)
+      ? stored
+      : resolveChartType(data, defaultType)
     : (stored ?? defaultType ?? "bar");
   // Hidden items belong to one type; switching type shows everything again.
   const hidden = hiddenState.type === type ? hiddenState.keys : emptyHidden;
