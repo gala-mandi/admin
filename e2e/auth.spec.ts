@@ -100,8 +100,12 @@ test.describe("admin auth", () => {
 
     await expect(page).toHaveURL("/dashboard");
     await expect(page.getByTestId("user-name")).toHaveText("Platform Admin");
+    // The name shows from the login response; the /auth/me → 401 → refresh
+    // → retry chain runs after it, so wait for it instead of reading it once.
+    await expect
+      .poll(() => meCalls.map(bearer))
+      .toEqual(["expired-token", "fresh-token"]);
     expect(refreshes).toHaveLength(1);
-    expect(meCalls.map(bearer)).toEqual(["expired-token", "fresh-token"]);
   });
 
   test("refresh token expired → login with the session-expired message", async ({
