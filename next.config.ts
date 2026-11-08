@@ -1,4 +1,8 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
+
+/** Sentry is on only when a DSN is set at build time (see src/lib/sentry.ts). */
+const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
 
 /**
  * Security headers for every page. The API origin is the only other place the
@@ -13,6 +17,8 @@ function securityHeaders(): { key: string; value: string }[] {
   const api = process.env.NEXT_PUBLIC_API_URL
     ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
     : "";
+  // Browser errors are sent to the Sentry ingest host named in the DSN.
+  const sentry = sentryDsn ? new URL(sentryDsn).origin : "";
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
@@ -21,7 +27,7 @@ function securityHeaders(): { key: string; value: string }[] {
     // endpoint; add a custom ImageKit domain here if one is set up.
     `img-src 'self' data: blob: https://ik.imagekit.io ${api}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${api}`,
+    `connect-src 'self' ${api} ${sentry}`.trim(),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -61,4 +67,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// With a DSN, Sentry's build step only wires up error capture: no source-map
+// upload (no auth token), no release creation, no telemetry. Without one the
+// config is left exactly as it is.
+export default sentryDsn
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      telemetry: false,
+      sourcemaps: { disable: true },
+      release: { create: false, finalize: false },
+      suppressOnRouterTransitionStartWarning: true,
+    })
+  : nextConfig;
