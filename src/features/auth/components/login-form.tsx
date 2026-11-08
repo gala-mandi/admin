@@ -297,7 +297,7 @@ export function LoginForm({ reason = null, next = null }: LoginFormProps) {
           type="submit"
           disabled={busy}
           aria-busy={busy || undefined}
-          className="rounded-button from-primary to-brand-to focus-visible:ring-admin-focus/30 h-[50px] w-full gap-2.5 bg-linear-90 text-base font-bold text-white hover:opacity-95 focus-visible:ring-4 disabled:opacity-60"
+          className="rounded-button from-primary to-primary-to focus-visible:ring-admin-focus/30 h-[50px] w-full gap-2.5 bg-linear-90 text-base font-bold text-white hover:opacity-95 focus-visible:ring-4 disabled:opacity-60"
         >
           {busy ? (
             <Loader2 aria-hidden className="size-5 animate-spin" />
