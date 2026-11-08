@@ -23,10 +23,6 @@ its file in `auth/`.
 | 5.2 | Mobile — verify OTP | `auth/MobileOtp.dc.html` | app |
 | — | Brand panel (left side of every desktop screen) | `auth/BrandPanel.dc.html` | web, admin |
 
-**All other super-admin screens** (layout, platform dashboard, shops, shop detail, create/edit
-shop, plans) are recorded as built, light and dark, in [`screens/README.md`](screens/README.md)
-(ticket 42).
-
 Desktop screens are designed at 1440×900 and must also work down to phone width (the brand panel
 wraps above the form). Mobile screens are 390×844.
 
