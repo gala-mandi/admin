@@ -60,7 +60,7 @@ export interface LoginFormProps {
 }
 
 const inputClass =
-  "h-12 rounded-field border-admin-border bg-admin-input px-3.5 text-[15px] text-admin-text placeholder:text-admin-muted/70 md:text-[15px] focus-visible:border-2 focus-visible:border-admin-focus focus-visible:ring-4 focus-visible:ring-admin-focus/20 aria-invalid:border-rose-400 aria-invalid:ring-rose-400/20";
+  "h-12 rounded-field border-admin-border bg-admin-input px-3.5 text-[15px] text-admin-text placeholder:text-admin-muted/70 md:text-[15px] focus-visible:border-2 focus-visible:border-admin-focus focus-visible:ring-4 focus-visible:ring-admin-focus/22 aria-invalid:border-rose-400 aria-invalid:ring-rose-400/20";
 
 function Notice({
   tone,

@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
+import Link from "next/link";
 import { blockedText } from "../text";
-import { AuthCard, TextLink, UrduLine } from "./auth-ui";
+import { AuthCard, UrduLine } from "./auth-ui";
 
 /** 4.2 Account disabled (403 `ACCOUNT_DISABLED`). */
 export function AccountDisabled() {
@@ -25,7 +26,12 @@ export function AccountDisabled() {
       <div className="bg-background text-foreground/85 w-full rounded-xl px-3.5 py-3 text-start text-[13px]/normal">
         {t.hint} <strong className="text-foreground">{t.hintPath}</strong>.
       </div>
-      <TextLink href="/login">{t.back}</TextLink>
+      <Link
+        href="/login"
+        className="rounded-button border-border bg-card text-foreground hover:bg-background focus-visible:ring-ring/15 flex min-h-[50px] w-full items-center justify-center border text-[15px] font-bold focus-visible:ring-4 focus-visible:outline-none"
+      >
+        {t.back}
+      </Link>
     </AuthCard>
   );
 }

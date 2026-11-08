@@ -66,7 +66,8 @@ export function BrandPanel() {
           <p
             lang="ur"
             dir="rtl"
-            className="font-urdu text-start text-lg/loose sm:text-xl/loose"
+            // Lines up with the English text (left), as in the design.
+            className="font-urdu text-end text-lg/loose sm:text-xl/loose"
           >
             {brandText.headlineUr}
           </p>
@@ -99,7 +100,7 @@ export function BrandPanel() {
                 <span
                   lang="ur"
                   dir="rtl"
-                  className="font-urdu text-start text-[11px]/relaxed text-white/85"
+                  className="font-urdu text-end text-[11px]/relaxed text-white/85"
                 >
                   {brandText.ratesTitleUr}
                 </span>
