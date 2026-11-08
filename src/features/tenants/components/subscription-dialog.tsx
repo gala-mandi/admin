@@ -49,6 +49,7 @@ import {
 import { subscriptionDialogText as t } from "../text";
 import type { SubscriptionView, TenantDetail } from "../types";
 import { FormAlert, TextField } from "./shop-form-fields";
+import { useReturnFocus } from "@/hooks/use-return-focus";
 
 type Mode = "extend" | "assign";
 const e = t.errors;
@@ -306,7 +307,7 @@ function AssignForm({
                   aria-describedby={
                     fieldState.error ? "assign-plan-error" : undefined
                   }
-                  className="rounded-field bg-card h-11! w-full px-3.5 text-[15px]"
+                  className="rounded-field bg-card h-[50px]! w-full px-3.5 text-[15px]"
                 >
                   <SelectValue
                     placeholder={
@@ -406,6 +407,7 @@ export function SubscriptionDialog({
   const sub = tenant.subscription ?? null;
   const [mode, setMode] = useState<Mode>(sub ? "extend" : "assign");
   const today = useMemo(() => karachiToday(), []);
+  const returnFocus = useReturnFocus(true);
 
   const tabs: { mode: Mode; label: string; icon: typeof Repeat }[] = [
     { mode: "extend", label: t.tabs.extend, icon: CalendarPlus },
@@ -415,6 +417,7 @@ export function SubscriptionDialog({
   return (
     <Dialog open onOpenChange={(open) => (open ? null : onClose())}>
       <DialogContent
+        {...returnFocus}
         className="sm:rounded-card gap-6 p-5 sm:max-w-lg sm:p-7"
         closeLabel={t.cancel}
       >
