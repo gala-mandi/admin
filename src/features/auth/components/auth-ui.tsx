@@ -18,7 +18,7 @@ export function AuthCard({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "bg-card text-card-foreground rounded-card shadow-card flex w-full max-w-[420px] flex-col gap-5 px-6 pt-10 pb-7 sm:px-9",
+        "bg-card text-card-foreground rounded-card shadow-card flex w-full max-w-[420px] min-w-0 flex-col gap-5 px-6 pt-10 pb-7 sm:px-9",
         className,
       )}
       {...props}
@@ -92,7 +92,9 @@ export function PrimaryButton({
   return (
     <Button
       className={cn(
-        "rounded-button from-primary to-brand-to text-primary-foreground shadow-button h-[52px] w-full gap-2.5 bg-linear-90 text-base font-bold hover:opacity-95 disabled:opacity-60",
+        // The label and its Urdu line wrap on a narrow phone instead of
+        // pushing the card wider than the screen.
+        "rounded-button from-primary to-primary-to text-primary-foreground shadow-button h-auto min-h-[52px] w-full flex-wrap gap-x-2.5 gap-y-0 bg-linear-90 py-2 text-base font-bold whitespace-normal hover:opacity-95 disabled:opacity-60",
         "focus-visible:ring-ring/15 focus-visible:ring-4",
         className,
       )}
@@ -161,7 +163,8 @@ export function PasswordInput(props: ComponentProps<typeof IconInput>) {
           aria-label={visible ? passwordText.hide : passwordText.show}
           aria-pressed={visible}
           onClick={() => setVisible((v) => !v)}
-          className="rounded-[10px]"
+          // 44px to tap on a phone, 40px as designed from `sm` up.
+          className="size-11 rounded-[10px] sm:size-10"
         >
           {visible ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
         </InputGroupButton>

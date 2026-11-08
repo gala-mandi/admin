@@ -12,6 +12,7 @@
   --font-urdu: var(--font-nastaliq);
   --color-brand-from: var(--brand-from);
   --color-brand-to: var(--brand-to);
+  --color-primary-to: var(--primary-to);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-destructive-soft: var(--destructive-soft);
@@ -102,6 +103,8 @@
   --popover: #ffffff;
   --popover-foreground: #1e1b2e;
   --primary: #6d28d9;
+  /* End of the button gradient (the start is --primary). */
+  --primary-to: #9333ea;
   --primary-foreground: #ffffff;
   --secondary: #ede9fe;
   --secondary-foreground: #4c1d95;
@@ -176,6 +179,83 @@
   --admin-muted: #b7b2c6;
   --admin-link: #c4b5fd;
   --admin-focus: #8b5cf6;
+}
+
+/*
+ * The six themes from the design (docs/design/README.md, ticket 40), the
+ * same sets as the shop panel (web). A theme changes only the accent (links,
+ * focus ring, active marks), the button gradient and the brand-panel
+ * gradient; page, card, text, border, error and success colours are shared.
+ * The focus ring is the accent at 15% (`ring-ring/15`). `:root` above is
+ * violet; `[data-theme]` goes on <html> or any element. "dark" is the
+ * charcoal accent on the light page, not dark mode (that is `.dark` below).
+ * Contrast: src/app/theme-contrast.test.ts.
+ */
+
+[data-theme="violet"] {
+  --primary: #6d28d9;
+  --primary-to: #9333ea;
+  --ring: #6d28d9;
+  --link: #6d28d9;
+  --sidebar-primary: #6d28d9;
+  --sidebar-ring: #6d28d9;
+  --brand-from: #4c1d95;
+  --brand-to: #9333ea;
+}
+
+[data-theme="indigo"] {
+  --primary: #4338ca;
+  --primary-to: #7c3aed;
+  --ring: #4338ca;
+  --link: #4338ca;
+  --sidebar-primary: #4338ca;
+  --sidebar-ring: #4338ca;
+  --brand-from: #312e81;
+  --brand-to: #6d28d9;
+}
+
+[data-theme="blue"] {
+  --primary: #1d4ed8;
+  --primary-to: #2563eb;
+  --ring: #1d4ed8;
+  --link: #1d4ed8;
+  --sidebar-primary: #1d4ed8;
+  --sidebar-ring: #1d4ed8;
+  --brand-from: #1e3a8a;
+  --brand-to: #2563eb;
+}
+
+[data-theme="green"] {
+  --primary: #065f46;
+  --primary-to: #047857;
+  --ring: #065f46;
+  --link: #065f46;
+  --sidebar-primary: #065f46;
+  --sidebar-ring: #065f46;
+  --brand-from: #064e3b;
+  --brand-to: #047857;
+}
+
+[data-theme="red"] {
+  --primary: #be123c;
+  --primary-to: #e11d48;
+  --ring: #be123c;
+  --link: #be123c;
+  --sidebar-primary: #be123c;
+  --sidebar-ring: #be123c;
+  --brand-from: #881337;
+  --brand-to: #e11d48;
+}
+
+[data-theme="dark"] {
+  --primary: #18181b;
+  --primary-to: #3f3f46;
+  --ring: #18181b;
+  --link: #18181b;
+  --sidebar-primary: #18181b;
+  --sidebar-ring: #18181b;
+  --brand-from: #18181b;
+  --brand-to: #3f3f46;
 }
 
 .dark {

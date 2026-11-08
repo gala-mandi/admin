@@ -33,6 +33,7 @@ import {
 } from "../schemas";
 import { planFormText as t } from "../text";
 import type { Plan } from "../types";
+import { useReturnFocus } from "@/hooks/use-return-focus";
 
 const e = t.errors;
 
@@ -106,6 +107,7 @@ export function PlanFormDialog({ plan, onClose }: PlanFormDialogProps) {
   };
 
   const busy = form.formState.isSubmitting;
+  const returnFocus = useReturnFocus(true);
 
   return (
     <Dialog
@@ -115,6 +117,7 @@ export function PlanFormDialog({ plan, onClose }: PlanFormDialogProps) {
       }}
     >
       <DialogContent
+        {...returnFocus}
         className="sm:rounded-card gap-6 p-5 sm:max-w-xl sm:p-7"
         closeLabel={t.cancel}
       >

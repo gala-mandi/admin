@@ -60,7 +60,7 @@ export interface LoginFormProps {
 }
 
 const inputClass =
-  "h-12 rounded-field border-admin-border bg-admin-input px-3.5 text-[15px] text-admin-text placeholder:text-admin-muted/70 md:text-[15px] focus-visible:border-2 focus-visible:border-admin-focus focus-visible:ring-4 focus-visible:ring-admin-focus/20 aria-invalid:border-rose-400 aria-invalid:ring-rose-400/20";
+  "h-12 rounded-field border-admin-border bg-admin-input px-3.5 text-[15px] text-admin-text placeholder:text-admin-muted/70 md:text-[15px] focus-visible:border-2 focus-visible:border-admin-focus focus-visible:ring-4 focus-visible:ring-admin-focus/22 aria-invalid:border-rose-400 aria-invalid:ring-rose-400/20";
 
 function Notice({
   tone,
@@ -297,7 +297,7 @@ export function LoginForm({ reason = null, next = null }: LoginFormProps) {
           type="submit"
           disabled={busy}
           aria-busy={busy || undefined}
-          className="rounded-button from-primary to-brand-to focus-visible:ring-admin-focus/30 h-[50px] w-full gap-2.5 bg-linear-90 text-base font-bold text-white hover:opacity-95 focus-visible:ring-4 disabled:opacity-60"
+          className="rounded-button from-primary to-primary-to focus-visible:ring-admin-focus/30 h-[50px] w-full gap-2.5 bg-linear-90 text-base font-bold text-white hover:opacity-95 focus-visible:ring-4 disabled:opacity-60"
         >
           {busy ? (
             <Loader2 aria-hidden className="size-5 animate-spin" />

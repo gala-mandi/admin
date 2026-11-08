@@ -21,7 +21,7 @@ import type { ShopFieldsValues } from "../schemas";
 import { shopFormText as t } from "../text";
 
 const controlClass =
-  "rounded-field bg-card h-11 px-3.5 text-[15px] md:text-[15px] focus-visible:ring-ring/15 focus-visible:ring-4";
+  "rounded-field bg-card h-[50px] px-3.5 text-[15px] md:text-[15px] focus-visible:ring-ring/15 focus-visible:ring-4";
 
 interface TextFieldProps<T extends FieldValues> {
   name: Path<T>;

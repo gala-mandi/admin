@@ -26,8 +26,10 @@ import dynamic from "next/dynamic";
 import {
   type MouseEvent,
   type ReactNode,
+  useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Button } from "@/components/ui/button";
@@ -352,6 +354,29 @@ function chartBasis(
  * state and an error state with retry. Tables whose columns have
  * `meta.chart.group` also get a "Table | Chart" toggle (see `chart-view`).
  */
+/**
+ * The empty and error messages span every column; on a phone the table
+ * scrolls sideways, so they stay on the visible part (sticky at the start,
+ * as wide as the card) instead of being centred off screen.
+ */
+const visibleWidthClass = "sticky start-0 w-[var(--data-table-width,100%)]";
+
+/** Keeps `--data-table-width` on the card at its inner width. */
+function useVisibleWidth() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const update = () =>
+      el.style.setProperty("--data-table-width", `${el.clientWidth}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
 export function DataTable<TData extends RowData>({
   columns,
   data,
@@ -467,8 +492,13 @@ export function DataTable<TData extends RowData>({
     ? (data ?? []).filter((row) => rowSelection[getRowId(row)])
     : [];
 
+  const frame = useVisibleWidth();
+
   return (
-    <div className="bg-card text-card-foreground rounded-card shadow-panel overflow-hidden border">
+    <div
+      ref={frame}
+      className="bg-card text-card-foreground rounded-card shadow-panel overflow-hidden border"
+    >
       {toolbar || chartable ? (
         <div
           data-slot="data-table-toolbar"
@@ -599,7 +629,10 @@ export function DataTable<TData extends RowData>({
                 >
                   <div
                     role="alert"
-                    className="flex flex-col items-center gap-2 px-6 py-14 text-center"
+                    className={cn(
+                      "flex flex-col items-center gap-2 px-6 py-14 text-center",
+                      visibleWidthClass,
+                    )}
                   >
                     <span className="bg-destructive-soft text-destructive mb-1 flex size-12 items-center justify-center rounded-full">
                       <CircleAlert aria-hidden className="size-5" />
@@ -628,14 +661,16 @@ export function DataTable<TData extends RowData>({
                   colSpan={columnCount}
                   className="p-0 whitespace-normal"
                 >
-                  {empty ?? (
-                    <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
-                      <span className="bg-secondary text-secondary-foreground mb-1 flex size-12 items-center justify-center rounded-full">
-                        <Inbox aria-hidden className="size-5" />
-                      </span>
-                      <p className="text-muted-foreground">{t.emptyTitle}</p>
-                    </div>
-                  )}
+                  <div className={visibleWidthClass}>
+                    {empty ?? (
+                      <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
+                        <span className="bg-secondary text-secondary-foreground mb-1 flex size-12 items-center justify-center rounded-full">
+                          <Inbox aria-hidden className="size-5" />
+                        </span>
+                        <p className="text-muted-foreground">{t.emptyTitle}</p>
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
